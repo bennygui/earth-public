@@ -1,0 +1,284 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * Implementation : © Guillaume Benny bennygui@gmail.com
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ */
+
+@function repeat-string($n, $s: "0") {
+    $out: $s;
+
+    @while str-length($out) < $n {
+        $out: $out + $s;
+    }
+
+    @return $out;
+}
+
+@function zerofill($i, $n) {
+    @if str-length(#{$i})>=$n {
+        @return #{$i};
+    }
+
+    @return #{repeat-string($n - str-length(#{$i}))+$i
+}
+}
+
+
+.scorenumber {
+    z-index: 9999;
+}
+
+.bx-hidden {
+    display: none !important;
+}
+
+.bx-invisible {
+    visibility: hidden !important;
+}
+
+.bx-transparent {
+    opacity: 0 !important;
+}
+
+.bx-clickable {
+    cursor: pointer !important;
+}
+
+.bx-clickable.bx-border {
+    border: 2px solid red !important;
+
+    @media (max-width: 480px) {
+        border: 4px solid red !important;
+    }
+}
+
+.bx-clickable.bx-outline {
+    filter: drop-shadow(2px 0px 0 red) drop-shadow(0px 2px 0 red) drop-shadow(-2px -0px 0 red) drop-shadow(-0px -2px 0 red) !important;
+
+    @media (max-width: 480px) {
+        filter: drop-shadow(4px 0px 0 red) drop-shadow(0px 4px 0 red) drop-shadow(-4px -0px 0 red) drop-shadow(-0px -4px 0 red) !important;
+    }
+}
+
+//.bx-selected {}
+.bx-selected.bx-selected.bx-selected.bx-border {
+    border: 4px solid blue !important;
+    box-shadow: inset 0px 0px 0 2000px #0000ff33;
+}
+
+.bx-selected.bx-selected.bx-selected.bx-selected-secondary.bx-border {
+    border: 4px solid green !important;
+    box-shadow: inset 0px 0px 0 2000px #0000ff33;
+}
+
+.bx-selected.bx-selected.bx-selected.bx-selected.bx-outline {
+    filter: grayscale(0.5) drop-shadow(4px 0px 0 blue) drop-shadow(0px 4px 0 blue) drop-shadow(-4px -0px 0 blue) drop-shadow(-0px -4px 0 blue) !important;
+}
+
+.bx-selected.bx-selected.bx-selected.bx-selected-secondary.bx-outline {
+    filter: grayscale(0.5) drop-shadow(4px 0px 0 green) drop-shadow(0px 4px 0 green) drop-shadow(-4px -0px 0 green) drop-shadow(-0px -4px 0 green) !important;
+}
+
+.bx-phantom {
+    opacity: 0 !important;
+}
+
+.bx-top-button-invalid {
+    background: #d75500;
+    border: 1px solid #993d00;
+}
+
+.bx-flip-container {
+    background-color: transparent;
+    width: 100%;
+    height: 100%;
+    perspective: 1000px;
+
+    .bx-flip-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 1s;
+        transform: rotateY(0deg);
+
+        .bx-flip-front,
+        .bx-flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            /* Safari */
+            backface-visibility: hidden;
+            transform: rotateY(0deg);
+        }
+
+        .bx-flip-back {
+            transform: rotateY(180deg);
+        }
+    }
+
+    &.bx-flipped .bx-flip-inner {
+        transform: rotateY(180deg);
+    }
+}
+
+.bx-counter-in-progress {
+    color: red !important;
+    font-weight: 900;
+    transition: font-weight 1s ease
+}
+
+.bx-is-dragging {
+    transform: scale(1.02);
+    transition: transform 0.1s;
+}
+
+.bx-checkbox-switch {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+
+    #generalactions & {
+        display: inline-flex;
+        font-size: 16px;
+        margin-left: 10px;
+    }
+
+    span {
+        margin-right: 0.5rem;
+    }
+
+    input {
+        display: none;
+    }
+
+    i {
+        position: relative;
+        display: inline-block;
+        margin-right: 0.5rem;
+        width: 46px;
+        height: 26px;
+        background-color: #b1b1b1;
+        border-radius: 23px;
+        vertical-align: text-bottom;
+        transition: all 0.3s;
+    }
+
+    i::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 42px;
+        height: 22px;
+        background-color: #fff;
+        border-radius: 11px;
+        transform: translate3d(2px, 2px, 0) scale3d(1, 1, 1);
+        transition: all 0.3;
+    }
+
+    i::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 22px;
+        height: 22px;
+        background-color: #0075ff;
+        border-radius: 11px;
+        box-shadow: 0 2px 2px rgba(0, 0, 0, 0.24);
+        transform: translate3d(2px, 2px, 0);
+        transition: all 0.2s ease-in-out;
+    }
+
+    &:active i::after {
+        width: 28px;
+        transform: translate3d(2px, 2px, 0);
+    }
+
+    &:active input:checked+i::after {
+        transform: translate3d(16px, 2px, 0);
+    }
+
+    input:checked+i {
+        background-color: #29c119;
+    }
+
+    input:checked+i::before {
+        transform: translate3d(18px, 2px, 0) scale3d(0, 0, 0);
+    }
+
+    input:checked+i::after {
+        transform: translate3d(22px, 2px, 0);
+    }
+}
+
+// Modal Dialog
+.custom_popin {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 1000px;
+    min-width: 300px;
+    width: 70%;
+    box-sizing: border-box;
+    background: linear-gradient(to bottom, #f8f8f8, #e7e9e8);
+    border: 2px black solid;
+    border-radius: 8px;
+    padding: 1%;
+    padding-bottom: 10px;
+}
+
+.mobile_version .custom_popin {
+    padding: 10px;
+}
+
+.custom_popin_title {
+    font-size: 150%;
+    padding-right: 90px;
+    align-self: flex-start;
+}
+
+.mobile_version .custom_popin_title {
+    font-size: 120%;
+}
+
+.custom_popin_closeicon,
+.custom_popin_helpicon {
+    position: absolute;
+    top: 5px;
+    color: black !important;
+    right: 8px;
+    font-size: 134%;
+    cursor: pointer;
+}
+
+.custom_popin_helpicon {
+    right: 47px;
+}
+
+.notouch-device .custom_popin_closeicon:hover,
+.notouch-device .custom_popin_helpicon:hover {
+    color: #555555 !important;
+}
+
+#popin_ea-information-dialog {
+    @media (pointer: coarse) {
+        font-size: 0.8rem;
+    }
+}
+
+.dijitTooltip {
+    z-index: 5000;
+}
+
+#mediawiki_gamehelp_content {
+    li {
+        list-style: disc;
+        margin-left: 1rem;
+    }
+}

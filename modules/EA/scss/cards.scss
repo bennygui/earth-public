@@ -1,0 +1,296 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * earth implementation : © Guillaume Benny bennygui@gmail.com
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ */
+
+$cardid-objective-long: 63051,
+63052,
+63061,
+63062,
+63182,
+63191,
+63192,
+63201,
+63202,
+63221,
+63222,
+63231,
+63232,
+63251,
+63261,
+63262,
+63271,
+63272,
+63281,
+63282,
+63291,
+63292,
+63301;
+$card-image-nb-col: 5;
+$card-image-max-nb-row: 5;
+
+.ea-card-container {
+    position: relative;
+}
+
+.ea-card-selection {
+    border-radius: calc(20px * #{$static-scale} * var(--ea-zoom));
+}
+
+.ea-card.ea-card-compact[data-card-id="99999"] {
+    height: calc(#{$card-height-compact}px * var(--ea-zoom));
+}
+
+.ea-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    width: calc(#{$card-width}px * var(--ea-zoom));
+    height: calc(#{$card-height}px * var(--ea-zoom));
+    border-radius: calc(20px * #{$static-scale} * var(--ea-zoom));
+    box-shadow: 0px 0px 3px black;
+
+    .ea-background-dark #ea-area-card-hand &,
+    .ea-background-dark .ea-area-player-tableau-container & {
+        box-shadow: 0px 0px 3px white;
+    }
+
+    .ea-background-dark .ea-hand-compact #ea-area-card-hand & {
+        box-shadow: 0px 0px 3px black;
+    }
+
+    z-index: 1;
+    overflow: hidden;
+
+    &.ea-card-compact-top {
+        height: calc((#{$card-height - $card-height-compact-top}px) * var(--ea-zoom));
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+    }
+
+    .ea-card-sprout-container {
+        position: absolute;
+        width: 100%;
+        height: calc(55px * #{$static-scale} * var(--ea-zoom));
+        top: calc(410px * #{$static-scale} * var(--ea-zoom));
+        left: 0px;
+        right: 0px;
+        margin-left: auto;
+        margin-right: auto;
+        display: flex;
+        flex-flow: row;
+        border: 4px solid transparent;
+        border-radius: calc(15px * 0.75 * var(--ea-zoom));
+
+        @media (max-width: 480px) {
+            border: 4px solid transparent;
+        }
+    }
+
+    &.ea-card-compact-bottom {
+        .ea-card-sprout-container {
+            top: 0px;
+        }
+    }
+
+    .ea-card-colorblind-container {
+        .ea-colorblind-inactive & {
+            display: none;
+        }
+
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: calc(65px * #{$static-scale} * var(--ea-zoom));
+        top: calc(555px * #{$static-scale} * var(--ea-zoom));
+        left: 0px;
+        right: 0px;
+        display: flex;
+        flex-flow: row;
+        justify-content: space-between;
+
+        >* {
+            flex: auto;
+            height: 100%;
+        }
+    }
+
+    &.ea-card-compact-bottom {
+        .ea-card-colorblind-container {
+            top: unset;
+            bottom: 0px;
+            height: calc(20px * #{$static-scale} * var(--ea-zoom));
+        }
+    }
+
+    .ea-card-growth-container {
+        position: absolute;
+        width: calc(75px * #{$static-scale} * var(--ea-zoom));
+        height: calc(60px * #{$static-scale} * var(--ea-zoom));
+        top: calc(153px * #{$static-scale} * var(--ea-zoom));
+        right: calc(15px * #{$static-scale} * var(--ea-zoom));
+        border: 4px solid transparent;
+        border-radius: calc(15px * 0.75 * var(--ea-zoom));
+
+        @media (max-width: 480px) {
+            border: 4px solid transparent;
+        }
+
+        .ea-counter {
+            position: absolute;
+            top: -1rem;
+            left: -1.5rem;
+            min-width: 1rem;
+            opacity: 0;
+        }
+    }
+
+    --ea-zoom-parent: var(--ea-zoom);
+
+    .ea-card-cost {
+        --ea-zoom: var(--ea-zoom-parent) * 0.4;
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-evenly;
+        width: calc(5rem * #{$static-scale} * var(--ea-zoom-parent));
+        height: calc(5rem * #{$static-scale} * var(--ea-zoom-parent));
+        top: calc(10px * #{$static-scale} * var(--ea-zoom-parent));
+        left: calc(10px * #{$static-scale} * var(--ea-zoom-parent));
+        border: 2px #a9c89d solid;
+        border-radius: 1000px;
+        background: white;
+        background: radial-gradient(circle, white 0%, hsl(104deg 28% 80%) 95%, #a9c89d 100%);
+        font-size: calc(25px * #{$static-scale} * var(--ea-zoom-parent));
+        font-weight: bold;
+        transition: top 0.3s, left 0.3s, width 0.3s, height 0.3s, border 0.3s;
+
+        &.ea-card-cost-inactive {
+            top: calc(10px * #{$static-scale} * var(--ea-zoom-parent) + (5rem * #{$static-scale} * var(--ea-zoom-parent))/2);
+            left: calc(10px * #{$static-scale} * var(--ea-zoom-parent) + (5rem * #{$static-scale} * var(--ea-zoom-parent))/2);
+            width: 0px;
+            height: 0px;
+            border: 0px;
+            font-size: 0px;
+            --ea-zoom: 0;
+        }
+    }
+}
+
+.ea-card-placement {
+    opacity: 0.2;
+}
+
+.ea-card-placement:hover,
+.bx-selected.ea-card-placement {
+    opacity: 0.9;
+}
+
+.ea-placement-compost .ea-card::after {
+    content: "x";
+    font-weight: bold;
+    font-size: calc(#{$card-height/2}px * var(--ea-zoom));
+    color: #bb182b;
+    // Cannot use drop shadow here: Safari crashes!
+    -webkit-text-stroke-color: #46773f;
+    -webkit-text-stroke-width: 2px;
+}
+
+@mixin mixin-ea-card($image-file, $nb-row, $x, $y, $id, $nb-col: $card-image-nb-col) {
+    .ea-card[data-card-id="#{$id}"] {
+        background-image: url('img/card/#{$image-file}.jpg');
+        image-rendering: -webkit-optimize-contrast;
+        background-position-x: calc(#{-1 * $x * $card-width}px * var(--ea-zoom));
+        background-position-y: calc(#{-1 * $y * $card-height}px * var(--ea-zoom));
+        background-size: calc(#{$card-width * $nb-col}px * var(--ea-zoom)) calc(#{$card-height * $nb-row}px * var(--ea-zoom));
+
+        &.ea-card-compact-bottom {
+            height: calc((#{$card-height - $card-height-compact-bottom}px) * var(--ea-zoom));
+            background-position-y: calc((#{-1 * $y * $card-height - $card-back-pos-y-compact-bottom}px) * var(--ea-zoom));
+            border-top-left-radius: 0px;
+            border-top-right-radius: 0px;
+        }
+
+        @if (list.index($cardid-objective-long, $id)==null) {
+            &.ea-card-objective-bottom {
+                height: calc((#{$card-height - $card-height-objective-bottom}px) * var(--ea-zoom));
+                background-position-y: calc((#{-1 * $y * $card-height - $card-back-pos-y-objective-bottom}px) * var(--ea-zoom));
+            }
+        }
+
+        @else {
+            &.ea-card-objective-bottom {
+                height: calc((#{$card-height - $card-height-objective-long-bottom}px) * var(--ea-zoom));
+                background-position-y: calc((#{-1 * $y * $card-height - $card-back-pos-y-objective-long-bottom}px) * var(--ea-zoom));
+            }
+        }
+    }
+}
+
+@mixin mixin-ea-cards-one-side($base-image-file, $base-id, $start-id, $end-id) {
+    $nb-row-remain: math.ceil(math.div(($end-id - $start-id + 1), $card-image-nb-col));
+    $x: 0;
+    $y: 0;
+    $image-index: 1;
+
+    @for $cardId from $start-id through $end-id {
+        @include mixin-ea-card($base-image-file + '-'+ zerofill($image-index, 2), min($nb-row-remain, $card-image-max-nb-row), $x, $y, $base-id + $cardId);
+        $x: $x + 1;
+
+        @if $x>=$card-image-nb-col {
+            $x: 0;
+            $y: $y + 1;
+
+            @if $y>=$card-image-max-nb-row {
+                $y: 0;
+                $image-index: $image-index + 1;
+                $nb-row-remain: $nb-row-remain - $card-image-max-nb-row;
+            }
+        }
+    }
+}
+
+@mixin mixin-ea-cards-two-sides($base-image-file, $base-id, $start-id, $end-id) {
+    $nb-row-remain: math.ceil(math.div(($end-id - $start-id + 1) * 2, $card-image-nb-col));
+    $x: 0;
+    $y: 0;
+    $image-index: 1;
+
+    @for $cardId from $start-id through $end-id {
+        @for $side from 1 through 2 {
+            @include mixin-ea-card($base-image-file + '-'+ zerofill($image-index, 2), min($nb-row-remain, $card-image-max-nb-row), $x, $y, $base-id + $cardId * 10 + $side);
+            $x: $x + 1;
+
+            @if $x>=$card-image-nb-col {
+                $x: 0;
+                $y: $y + 1;
+
+                @if $y>=$card-image-max-nb-row {
+                    $y: 0;
+                    $image-index: $image-index + 1;
+                    $nb-row-remain: $nb-row-remain - $card-image-max-nb-row;
+                }
+            }
+        }
+    }
+
+}
+
+@include mixin-ea-cards-one-side('earth', 10000, 1, 283);
+@include mixin-ea-cards-two-sides('island', 40000, 285, 294);
+@include mixin-ea-cards-two-sides('climate', 50000, 295, 304);
+@include mixin-ea-cards-two-sides('ecosystem', 60000, 305, 336);
+@include mixin-ea-cards-two-sides('fauna', 70000, 337, 359);
+@include mixin-ea-cards-one-side('gaia', 80000, 360, 365);
+@include mixin-ea-card('back', 1, 0, 0, 99999, 2);
+@include mixin-ea-card('back', 1, 1, 0, 99998, 2);

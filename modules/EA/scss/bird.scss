@@ -1,0 +1,226 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * earth implementation : © Guillaume Benny bennygui@gmail.com
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ */
+
+body {
+    --ea-bird-top-base: 10px;
+    --ea-bird-top-base-index: 0px;
+    --ea-bird-top-start: 0px;
+    --ea-bird-top-end: 50px;
+    --ea-bird-rotation: 95deg;
+}
+
+@keyframes ea-bird-sprite {
+    0% {
+        background-position-x: 0px
+    }
+
+    50% {
+        background-position-x: -96px
+    }
+
+    100% {
+        background-position-x: 0px
+    }
+}
+
+@keyframes ea-bird-move {
+    0% {
+        left: 0px;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-start));
+    }
+
+    100% {
+        left: 100%;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-end));
+    }
+}
+
+@keyframes ea-bird-move-0 {
+    0% {
+        left: 0px;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-start));
+        opacity: 0.3;
+    }
+
+    100% {
+        left: 150%;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-end));
+        opacity: 0.3;
+    }
+}
+
+@keyframes ea-bird-move-1 {
+    0% {
+        left: 0px;
+        top: 0px;
+        opacity: 0;
+    }
+
+    2.99% {
+        left: 0px;
+        top: 0px;
+        opacity: 0;
+    }
+
+    3% {
+        left: 0px;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-start));
+        opacity: 0.3;
+    }
+
+    100% {
+        left: 150%;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-end));
+        opacity: 0.3;
+    }
+}
+
+@keyframes ea-bird-move-2 {
+    0% {
+        left: 0px;
+        top: 0px;
+        opacity: 0;
+    }
+
+    3.99% {
+        left: 0px;
+        top: 0px;
+        opacity: 0;
+    }
+
+    4% {
+        left: 0px;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-start));
+        opacity: 0.3;
+    }
+
+    100% {
+        left: 150%;
+        top: calc(var(--ea-bird-top-base) + var(--ea-bird-top-base-index) + var(--ea-bird-top-end));
+        opacity: 0.3;
+    }
+}
+
+@keyframes ea-bird-container {
+    0% {
+        top: 20%;
+        opacity: 0;
+        transform: scaleX(1);
+    }
+
+    10% {
+        top: 20%;
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    20% {
+        top: 90%;
+        opacity: 0;
+        transform: scaleX(1);
+    }
+
+    30% {
+        top: 90%;
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    40% {
+        top: 40%;
+        opacity: 0;
+        transform: scaleX(-1);
+    }
+
+    50% {
+        top: 40%;
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    60% {
+        top: 70%;
+        opacity: 0;
+        transform: scaleX(1);
+    }
+
+    70% {
+        top: 70%;
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    80% {
+        top: 50%;
+        opacity: 0;
+        transform: scaleX(-1);
+    }
+
+    90% {
+        top: 50%;
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    100% {
+        top: 10%;
+        opacity: 0;
+        transform: scaleX(1);
+    }
+}
+
+.ea-bird-container {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 10;
+    pointer-events: none;
+
+    animation: ea-bird-container 450s steps(1) infinite;
+
+    .ea-hide-environment-animations & {
+        display: none;
+    }
+}
+
+.ea-bird {
+    position: absolute;
+    left: 0px;
+    width: 8px;
+    height: 5px;
+    background-image: url('img/bird.png');
+    image-rendering: -webkit-optimize-contrast;
+    background-size: 24px 5px;
+    background-position-x: 0px;
+    background-position-y: 0px;
+    pointer-events: none;
+
+    animation: ea-bird-sprite 1s steps(3) infinite, ea-bird-move 15s linear infinite;
+    transform: rotate(var(--ea-bird-rotation));
+    opacity: 0.3;
+
+    &[data-bird-index="0"] {
+        --ea-bird-top-base-index: 0px;
+        animation: ea-bird-sprite 1.5s 0s steps(3) infinite, ea-bird-move-0 45s 0s linear infinite;
+    }
+
+    &[data-bird-index="1"] {
+        --ea-bird-top-base-index: 10px;
+        animation: ea-bird-sprite 1.5s 0.1s steps(3) infinite, ea-bird-move-1 45s 0s linear infinite;
+    }
+
+    &[data-bird-index="2"] {
+        --ea-bird-top-base-index: -10px;
+        animation: ea-bird-sprite 1.5s 0.1s steps(3) infinite, ea-bird-move-2 45s 0s linear infinite;
+    }
+}
