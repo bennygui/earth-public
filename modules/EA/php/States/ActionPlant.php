@@ -253,7 +253,7 @@ trait GameStatesTrait
             }
         } else {
             $mustSelectGain = ($abilityBlack !== null && $abilityBlack->hasUserPlacementGain());
-            $creator = \BX\Action\buildActionCommandCreator($playerId, !$mustSelectGain);
+            $creator = \BX\Action\buildActionCommandCreator($playerId, !$mustSelectGain || ($abilityBlack !== null && $abilityBlack->mustGainCommit()));
             $doPlant($creator);
             if (!$mustSelectGain) {
                 $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($playerId, INACTIVE_PLAYER_DRAW_CARDS));

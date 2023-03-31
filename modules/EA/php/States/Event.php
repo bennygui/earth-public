@@ -82,6 +82,7 @@ trait GameStatesTrait
             $this->addInstantGain($cardId, $creator, $ability);
             $this->addInstantEventGain($creator);
             $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
             $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectGain'));
             $creator->saveOrCommit();
         } else {
@@ -92,6 +93,7 @@ trait GameStatesTrait
             $this->addInstantGain($cardId, $creator, $ability);
             $this->addInstantEventGain($creator);
             $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
             $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromEventStateId($playerId)));
             $creator->saveOrCommit();
         }
@@ -120,6 +122,7 @@ trait GameStatesTrait
         });
         $creator->add(new \EA\Actions\Event\RestoreCardActivation($playerId));
         $this->addCommonActions($creator);
+        $this->addCommonActions($creator, true);
         $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromEventStateId($playerId)));
         $creator->saveOrCommit();
     }
@@ -150,10 +153,12 @@ trait GameStatesTrait
         if ($ability->hasUserPlacementGain()) {
             $this->addPlacementGain($cardId, $creator, $ability, null);
             $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
             $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectGain'));
         } else {
             $creator->add(new \EA\Actions\Event\RestoreCardActivation($playerId));
             $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
             $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromEventStateId($playerId)));
         }
         $creator->saveOrCommit();

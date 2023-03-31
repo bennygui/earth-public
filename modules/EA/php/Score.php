@@ -1399,7 +1399,7 @@ class ScoreEcosystem extends ScoreCardBase
                 default:
                     throw new \BgaSystemException("BUG! Unknown ecosystem scorePieceType: $scorePieceType");
             }
-            if ($spotCount !== null && $spotCount <= $scoreSpot) {
+            if ($spotCount === null || $spotCount <= $scoreSpot) {
                 $cardCount += 1;
             }
         }

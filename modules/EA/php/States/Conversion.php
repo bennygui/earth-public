@@ -71,6 +71,7 @@ trait GameStatesTrait
         $creator->add($convert);
         $creator->add(new \EA\Actions\Ability\GainSoil($playerId, $convert->getNbGainedSoil(), null));
         $this->addCommonActions($creator);
+        $this->addCommonActions($creator, true);
         $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromConversionStateId($playerId)));
         $creator->save();
     }

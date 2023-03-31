@@ -347,23 +347,26 @@ class earth extends Table
                 throw new \BgaSystemException("BUG! Zombie mode not supported for this game state: " . $statename);
         }
 
-        // Zombie player discards all cards
+        // Zombie player reset everything
         $playerStateMgr->zombieReset($playerId);
-        $cardMgr->zombieDiscard($playerId);
-        $this->notifyAllPlayers(
-            NTF_UPDATE_CARD_COUNTS,
-            '',
-            [
-                'cardCounts' => $cardMgr->getCardCountsUIForPlayerId($playerId),
-            ]
-        );
-        $this->notifyAllPlayers(
-            NTF_UPDATE_CARD_COUNTS,
-            '',
-            [
-                'cardCounts' => $cardMgr->getCardCountsUIDeckDiscard(),
-            ]
-        );
+        // Previouly, Zombie player would discards all cards... A few reported
+        // that they lost their cards, probably by being kicked out without
+        // knowing so let's try not discarding cards...
+        //$cardMgr->zombieDiscard($playerId);
+        //$this->notifyAllPlayers(
+        //    NTF_UPDATE_CARD_COUNTS,
+        //    '',
+        //    [
+        //        'cardCounts' => $cardMgr->getCardCountsUIForPlayerId($playerId),
+        //    ]
+        //);
+        //$this->notifyAllPlayers(
+        //    NTF_UPDATE_CARD_COUNTS,
+        //    '',
+        //    [
+        //        'cardCounts' => $cardMgr->getCardCountsUIDeckDiscard(),
+        //    ]
+        //);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////:
