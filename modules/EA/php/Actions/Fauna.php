@@ -505,21 +505,32 @@ class FaunaActionDiagonals extends FaunaActionBase
 
     protected function onGetPlayerFaunaProgress(int $playerId, array $scores)
     {
+        $smallX = 0;
+        $smallY = 0;
+        $bigX = 0;
+        $bigY = 0;
+        foreach ($this->getPlayerTableauCards() as $card) {
+            $smallX = min($smallX, $card->locationX);
+            $smallY = min($smallY, $card->locationY);
+            $bigX = max($bigX, $card->locationX);
+            $bigY = max($bigY, $card->locationY);
+        }
+
         $cardTL = null;
         $cardTR = null;
         $cardBL = null;
         $cardBR = null;
         foreach ($this->getPlayerTableauCards() as $card) {
-            if ($cardTL === null || ($card->locationX <= $cardTL->locationX && $card->locationY <= $cardTL->locationY)) {
+            if ($card->locationX == $smallX && $card->locationY == $smallY) {
                 $cardTL = $card;
             }
-            if ($cardTR === null || ($card->locationX >= $cardTR->locationX && $card->locationY <= $cardTR->locationY)) {
+            if ($card->locationX == $bigX && $card->locationY == $smallY) {
                 $cardTR = $card;
             }
-            if ($cardBL === null || ($card->locationX <= $cardTL->locationX && $card->locationY >= $cardTL->locationY)) {
+            if ($card->locationX == $smallX && $card->locationY == $bigY) {
                 $cardBL = $card;
             }
-            if ($cardBR === null || ($card->locationX >= $cardTR->locationX && $card->locationY >= $cardTR->locationY)) {
+            if ($card->locationX == $bigX && $card->locationY == $bigY) {
                 $cardBR = $card;
             }
         }

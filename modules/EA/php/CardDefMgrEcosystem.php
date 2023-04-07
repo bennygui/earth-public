@@ -283,7 +283,7 @@ trait CardDefMgrEcosystem
                 ->build(),
             (new CardDefBuilder())->ecosystemId(334, 2)->name(clienttranslate("Siberian Taiga Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_CARD_WITH_LESS_GROWTH_MAX_SCORE, 2, 1, 4])
-                    ->desc(clienttranslate('Score 2 points per card, each with a growth space value of 4 or less points'))->build())
+                    ->desc(clienttranslate('Score 2 points per Flora, each with a growth space value of 4 or less points'))->build())
                 ->build(),
             (new CardDefBuilder())->ecosystemId(335, 1)->name(clienttranslate("Tongass National Forest Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_CARD_WITH_FILLED_FIECES, 2, ABILITY_SPROUT])

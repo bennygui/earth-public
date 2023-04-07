@@ -1468,8 +1468,11 @@ class ScoreEcosystem extends ScoreCardBase
         $scoreGrowthScore = array_shift($scores);
         $cardCount = 0;
         foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
+            if (!$otherCard->getCardDef()->isFlora()) {
+                continue;
+            }
             $growth = $otherCard->getCardDef()->growthScore;
-            if ($growth !== null && $growth <= $scoreGrowthScore) {
+            if ($growth === null || $growth <= $scoreGrowthScore) {
                 $cardCount += 1;
             }
         }
@@ -1483,6 +1486,9 @@ class ScoreEcosystem extends ScoreCardBase
         $scoreGrowthScore = array_shift($scores);
         $cardCount = 0;
         foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
+            if (!$otherCard->getCardDef()->isFlora()) {
+                continue;
+            }
             $growth = $otherCard->getCardDef()->growthScore;
             if ($growth !== null && $growth >= $scoreGrowthScore) {
                 $cardCount += 1;
