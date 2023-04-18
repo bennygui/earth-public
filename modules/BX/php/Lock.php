@@ -40,13 +40,14 @@ class Locker
         };
 
         foreach (self::$registedTables as $tableName) {
-            // For now, only lock the global table
-            if ($tableName != 'global') {
+            // For now, only lock the game_ table
+            if ($tableName != 'game_state') {
                 continue;
             }
             $colString = implode(', ', self::$columnForTable[$tableName]);
             $db->executeSelect("SELECT $colString FROM $tableName WHERE 1 ORDER BY $colString FOR UPDATE");
         }
+        \BX\DB\RowMgrRegister::clearAllMgrCache();
     }
 }
 

@@ -40,7 +40,10 @@ $machinestates = [
         "args" => "argsEarthDefaultMultiActive",
         "initialprivate" => STATE_PLAYER_SETUP_CHOOSE_INITIAL_CARDS_ID,
         "action" => 'stPlayerSetup',
-        "possibleactions" => [],
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+        ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
         ],

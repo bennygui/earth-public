@@ -14,7 +14,7 @@ var debug = isDebug ? console.info.bind(window.console) : function () { };
 define([
     "dojo",
     "dojo/_base/declare",
-    g_gamethemeurl + "modules/BX/js/Counter.js",
+    g_gamethemeurl + "modules/BX/js/Numbers.js",
 ],
     function (dojo, declare) {
         return declare("ea.ScoreMgr", null, {
@@ -91,7 +91,7 @@ define([
                         }
                         const movementIdx = movements.length - 1;
                         const updateScore = () => gameui.wait(waitTime, isInstantaneous).then(() => {
-                            const counter = new bx.Counter();
+                            const counter = new bx.Numbers();
                             counter.addTarget(pad.elements[idx]);
                             counter.toValue(pad.scoresInOrder[idx], isInstantaneous);
                         });

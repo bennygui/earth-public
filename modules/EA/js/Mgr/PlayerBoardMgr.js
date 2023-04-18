@@ -24,6 +24,75 @@ define([
 
             setup(gamedatas) {
                 this.eventCardIds = {};
+
+                // Bottom part of the player panel (hidden by default)
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-resources')),
+                    _('Resources')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-endgame')),
+                    _('End Game (4x4 Grid) Scoring Reminder')
+                );
+                // Bottom part of the player panel: Resources
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-sprout')),
+                    _('gain sprout &rarr; sprout space')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-compost')),
+                    _('compost from deck / hand &rarr; personal compost')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-growth')),
+                    _('gain growth &rarr; growth space')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-draw')),
+                    _('draw card &rarr; into hand')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-plant')),
+                    _('plant card &rarr; into tableau')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-spend')),
+                    _('spend compost &rarr; into discard')
+                );
+                // Bottom part of the player panel: Scoring
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-base')),
+                    _('Base VP on cards (Tableau, Island &amp; Climate')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-event')),
+                    _('VP from Event cards')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-compost')),
+                    _('1 VP per Composted card')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-sprout')),
+                    _('1 VP per sprout')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-growth')),
+                    _('VP from Growth')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-terrain')),
+                    _('VP from Terrain cards')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-ecosystem')),
+                    _('VP from Ecosystem (1 personal &amp; 2 shared)')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-score-fauna')),
+                    _('VP from Fauna board')
+                );
+
                 if (gameui.isGameSolo()) {
                     gameui.addBasicTooltipToElement(
                         Array.from(document.querySelectorAll('.ea-player-board-action-0')),

@@ -836,6 +836,112 @@ body {
     .ea-background-dark & {
         box-shadow: 0px 5px 5px 0 white;
     }
+
+    * {
+        position: absolute;
+        bottom: 0px;
+        width: calc(102px * #{$static-scale} * var(--ea-zoom));
+        height: 80%;
+    }
+
+    .ea-player-board-bottom-resources {
+        bottom: unset;
+        top: 0px;
+        left: 0px;
+        width: 50%;
+        height: calc(54px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-endgame {
+        bottom: unset;
+        top: 0px;
+        left: 50%;
+        width: 50%;
+        height: calc(54px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-sprout {
+        left: calc(50px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-compost {
+        left: calc(180px * #{$static-scale} * var(--ea-zoom));
+        width: calc(182px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-growth {
+        left: calc(387px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-draw {
+        left: calc(507px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-plant {
+        left: calc(627px * #{$static-scale} * var(--ea-zoom));
+    }
+    .ea-player-board-bottom-spend {
+        left: calc(772px * #{$static-scale} * var(--ea-zoom));
+    }
+    
+    .ea-player-board-bottom-score-base {
+        bottom: unset;
+        top: calc(83px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1062px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-event {
+        bottom: unset;
+        top: calc(170px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1062px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-compost {
+        bottom: unset;
+        top: calc(257px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1062px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-sprout {
+        bottom: unset;
+        top: calc(347px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1062px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+    
+    .ea-player-board-bottom-score-growth {
+        bottom: unset;
+        top: calc(83px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1452px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-terrain {
+        bottom: unset;
+        top: calc(170px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1452px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-ecosystem {
+        bottom: unset;
+        top: calc(257px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1452px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-score-fauna {
+        bottom: unset;
+        top: calc(347px * #{$static-scale} * var(--ea-zoom));
+        left: calc(1452px * #{$static-scale} * var(--ea-zoom));
+        width: calc(381px * #{$static-scale} * var(--ea-zoom));
+        height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
 }
 
 .ea-area-player-board {
@@ -1184,6 +1290,10 @@ body {
     background-size: calc(176px * #{$static-scale} * var(--ea-zoom)) calc(76px * #{$static-scale} * var(--ea-zoom));
     background-position: calc(-88px * #{$static-scale} * var(--ea-zoom)) calc(0px * var(--ea-zoom));
     z-index: 0;
+
+    .ea-piece-shadow-inactive & {
+        background-image: none;
+    }
 }
 
 // Growth token
@@ -1225,6 +1335,10 @@ body {
     background-size: calc(414px * #{$static-scale} * var(--ea-zoom)) calc(352px * #{$static-scale} * var(--ea-zoom));
     background-position: calc(-95px * #{$static-scale} * var(--ea-zoom)) calc(0px * var(--ea-zoom));
     z-index: 0;
+
+    .ea-piece-shadow-inactive & {
+        background-image: none;
+    }
 }
 
 %ea-extend-token-canopy-red {
@@ -1308,6 +1422,10 @@ body {
     background-position: calc(-302px * #{$static-scale} * var(--ea-zoom)) calc(0px * var(--ea-zoom));
     z-index: 0;
     left: calc(-10px * #{$static-scale} * var(--ea-zoom));
+
+    .ea-piece-shadow-inactive & {
+        background-image: none;
+    }
 }
 
 // Icons
@@ -1764,15 +1882,27 @@ $main-action-color-3: #dcc84f;
     }
 
     [data-card-tag="0"] {
-        color: green;
+        color: #009e73;
+
+        .ea-colorblind-inactive & {
+            color: green;
+        }
     }
 
     [data-card-tag="1"] {
-        color: #9e6600;
+        color: #0072b2;
+
+        .ea-colorblind-inactive & {
+            color: #9e6600;
+        }
     }
 
     [data-card-tag="2"] {
-        color: red;
+        color: #d55e00;
+
+        .ea-colorblind-inactive & {
+            color: red;
+        }
     }
 }
 
@@ -1851,19 +1981,34 @@ $main-action-color-3: #dcc84f;
 
     // Tag on card
     [data-card-tag="0"] .ea-card-tag {
-        color: green;
+        color: #009e73;
+
+        .ea-colorblind-inactive & {
+            color: green;
+        }
+
         text-shadow: 0px 0px 1px black;
         display: block;
     }
 
     [data-card-tag="1"] .ea-card-tag {
-        color: #9e6600;
+        color: #0072b2;
+
+        .ea-colorblind-inactive & {
+            color: #9e6600;
+        }
+
         text-shadow: 0px 0px 1px black;
         display: block;
     }
 
     [data-card-tag="2"] .ea-card-tag {
-        color: red;
+        color: #d55e00;
+
+        .ea-colorblind-inactive & {
+            color: red;
+        }
+
         text-shadow: 0px 0px 1px black;
         display: block;
     }
@@ -1950,15 +2095,27 @@ $main-action-color-3: #dcc84f;
     width: 100%;
 
     [data-card-tag="0"] {
-        color: green;
+        color: #009e73;
+
+        .ea-colorblind-inactive & {
+            color: green;
+        }
     }
 
     [data-card-tag="1"] {
-        color: #9e6600;
+        color: #0072b2;
+
+        .ea-colorblind-inactive & {
+            color: #9e6600;
+        }
     }
 
     [data-card-tag="2"] {
-        color: red;
+        color: #d55e00;
+
+        .ea-colorblind-inactive & {
+            color: red;
+        }
     }
 
     .ea-dialog-card-detail-container {

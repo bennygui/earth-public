@@ -14,15 +14,15 @@ var debug = isDebug ? console.info.bind(window.console) : function () { };
 define([
     "dojo",
     "dojo/_base/declare",
-    g_gamethemeurl + "modules/BX/js/Counter.js",
+    g_gamethemeurl + "modules/BX/js/Numbers.js",
 ],
     function (dojo, declare) {
         return declare("ea.DeckMgr", null, {
             MAX_CARDS: 5,
 
             constructor() {
-                this.deckCounter = bx.Counter();
-                this.discardCounter = bx.Counter();
+                this.deckCounter = bx.Numbers();
+                this.discardCounter = bx.Numbers();
             },
 
             setup(gamedatas) {

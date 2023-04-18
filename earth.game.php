@@ -65,6 +65,7 @@ require_once("modules/EA/php/Debug.php");
 \BX\Action\ActionRowMgrRegister::registerMgr('card_tag', \EA\CardTagMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('player_seen_leaf_token', \EA\PlayerSeenLeafTokenMgr::class);
 
+\BX\Lock\Locker::registerTableColumn('action_command', 'action_command_id');
 \BX\Lock\Locker::registerTableColumn('card', 'card_id');
 \BX\Lock\Locker::registerTableColumn('leaf_token', 'token_id');
 \BX\Lock\Locker::registerTableColumn('player_state', 'player_id');
@@ -220,6 +221,11 @@ class earth extends Table
         }
 
         return $result;
+    }
+
+    protected function initTable() {
+        parent::initTable();
+        \BX\DB\RowMgrRegister::clearAllMgrCache();
     }
 
     public function currentPlayerId()

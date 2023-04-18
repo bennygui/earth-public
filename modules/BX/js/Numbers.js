@@ -17,7 +17,7 @@ define([
 ],
     function (dojo, declare) {
         // Inspired by https://github.com/bga-devs/tisaac-boilerplate
-        return declare("bx.Counter", null, {
+        return declare("bx.Numbers", null, {
             DELAY: 100,
             STEPS: 5,
 

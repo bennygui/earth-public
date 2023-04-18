@@ -279,11 +279,11 @@ trait CardDefMgrEcosystem
                 ->build(),
             (new CardDefBuilder())->ecosystemId(334, 1)->name(clienttranslate("Tangkoko Nature Reserve Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_CARD_WITH_MORE_GROWTH_MAX_SCORE, 6, 2, 5])
-                    ->desc(clienttranslate('Score 6 points per 2 cards, each with a growth space value of 5 or more points'))->build())
+                    ->desc(clienttranslate('Score 6 points per 2 cards, each with a canopy completion VP value of 5 or more points'))->build())
                 ->build(),
             (new CardDefBuilder())->ecosystemId(334, 2)->name(clienttranslate("Siberian Taiga Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_CARD_WITH_LESS_GROWTH_MAX_SCORE, 2, 1, 4])
-                    ->desc(clienttranslate('Score 2 points per Flora, each with a growth space value of 4 or less points'))->build())
+                    ->desc(clienttranslate('Score 2 points per Flora, each with a canopy completion VP value of 4 or less points'))->build())
                 ->build(),
             (new CardDefBuilder())->ecosystemId(335, 1)->name(clienttranslate("Tongass National Forest Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_CARD_WITH_FILLED_FIECES, 2, ABILITY_SPROUT])

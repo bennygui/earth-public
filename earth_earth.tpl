@@ -307,7 +307,26 @@
                 </div>
                 <details>
                     <summary><p class='ea-show-icon-help'>{SHOW_ICON_HELP}</p><p class='ea-hide-icon-help'>{HIDE_ICON_HELP}</p></summary>
-                    <div class='ea-player-board-bottom'></div>
+                    <div class='ea-player-board-bottom'>
+                        <div class='ea-player-board-bottom-resources'></div>
+                        <div class='ea-player-board-bottom-endgame'></div>
+
+                        <div class='ea-player-board-bottom-sprout'></div>
+                        <div class='ea-player-board-bottom-compost'></div>
+                        <div class='ea-player-board-bottom-growth'></div>
+                        <div class='ea-player-board-bottom-draw'></div>
+                        <div class='ea-player-board-bottom-plant'></div>
+                        <div class='ea-player-board-bottom-spend'></div>
+
+                        <div class='ea-player-board-bottom-score-base'></div>
+                        <div class='ea-player-board-bottom-score-event'></div>
+                        <div class='ea-player-board-bottom-score-compost'></div>
+                        <div class='ea-player-board-bottom-score-sprout'></div>
+                        <div class='ea-player-board-bottom-score-growth'></div>
+                        <div class='ea-player-board-bottom-score-terrain'></div>
+                        <div class='ea-player-board-bottom-score-ecosystem'></div>
+                        <div class='ea-player-board-bottom-score-fauna'></div>
+                    </div>
                 </details>
             </div>
         </div>

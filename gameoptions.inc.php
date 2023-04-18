@@ -133,4 +133,18 @@ $game_preferences = [
         ],
         'default' => USER_PREF_COLORBLIND_VALUE_DISABLED,
     ],
+    USER_PREF_PIECE_SHADOW_ID => [
+        'name' => totranslate('Show pieces shadow'),
+        'needReload' => true,
+        'values' => [
+            USER_PREF_PIECE_SHADOW_VALUE_ENABLED => [
+                'name' => totranslate('Enabled'),
+            ],
+            USER_PREF_PIECE_SHADOW_VALUE_DISABLED => [
+                'name' => totranslate('Disabled'),
+                'cssPref' => 'ea-piece-shadow-inactive'
+            ],
+        ],
+        'default' => USER_PREF_PIECE_SHADOW_VALUE_ENABLED,
+    ],
 ];

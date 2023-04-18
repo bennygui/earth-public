@@ -14,7 +14,7 @@ var debug = isDebug ? console.info.bind(window.console) : function () { };
 define([
     "dojo",
     "dojo/_base/declare",
-    g_gamethemeurl + "modules/BX/js/Counter.js",
+    g_gamethemeurl + "modules/BX/js/Numbers.js",
 ],
     function (dojo, declare) {
         return declare("bx.PlayerScoreTrait", null, {
@@ -28,7 +28,7 @@ define([
                 this.inherited(arguments);
                 for (const playerId in gamedatas.players) {
                     const playerInfo = gamedatas.players[playerId];
-                    this.playerScoreCounter[playerId] = new bx.Counter(null);
+                    this.playerScoreCounter[playerId] = new bx.Numbers(null);
                     this.playerScoreCounter[playerId].addTarget('player_score_' + playerId);
                     this.playerScoreCounter[playerId].setValue(playerInfo.score);
                 }

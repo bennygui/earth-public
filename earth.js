@@ -24,7 +24,7 @@ define([
     "ebg/counter",
     "ebg/core/gamegui",
     g_gamethemeurl + "modules/BX/js/GameBase.js",
-    g_gamethemeurl + "modules/BX/js/Counter.js",
+    g_gamethemeurl + "modules/BX/js/Numbers.js",
     g_gamethemeurl + "modules/BX/js/PlayerScoreTrait.js",
     g_gamethemeurl + "modules/EA/js/Mgr/PlayerPanelMgr.js",
     g_gamethemeurl + "modules/EA/js/Mgr/CardMgr.js",
@@ -277,34 +277,34 @@ define([
 
                 for (const playerId in gamedatas.players) {
                     this.counters[playerId] = {
-                        hand: new bx.Counter(),
-                        soil: new bx.Counter(),
-                        compost: new bx.Counter(),
-                        event: new bx.Counter(),
-                        sprout: new bx.Counter([0, 0]),
-                        growth: new bx.Counter([0, 0]),
-                        cardTree: new bx.Counter(),
-                        cardHerb: new bx.Counter(),
-                        cardMushroom: new bx.Counter(),
-                        cardBush: new bx.Counter(),
-                        cardJoker: new bx.Counter(),
-                        cardTerrain: new bx.Counter(),
-                        habitatSunny: new bx.Counter(),
-                        habitatWet: new bx.Counter(),
-                        habitatRocky: new bx.Counter(),
-                        habitatCold: new bx.Counter(),
-                        fauna: new bx.Counter([0, 4]),
+                        hand: new bx.Numbers(),
+                        soil: new bx.Numbers(),
+                        compost: new bx.Numbers(),
+                        event: new bx.Numbers(),
+                        sprout: new bx.Numbers([0, 0]),
+                        growth: new bx.Numbers([0, 0]),
+                        cardTree: new bx.Numbers(),
+                        cardHerb: new bx.Numbers(),
+                        cardMushroom: new bx.Numbers(),
+                        cardBush: new bx.Numbers(),
+                        cardJoker: new bx.Numbers(),
+                        cardTerrain: new bx.Numbers(),
+                        habitatSunny: new bx.Numbers(),
+                        habitatWet: new bx.Numbers(),
+                        habitatRocky: new bx.Numbers(),
+                        habitatCold: new bx.Numbers(),
+                        fauna: new bx.Numbers([0, 4]),
                     };
                 }
-                this.counters.gaiaSoil = new bx.Counter();
-                this.counters.gaiaSprout = new bx.Counter();
-                this.counters.gaiaGrowth = new bx.Counter([0, 0]);
-                this.counters.gaiaCompost = new bx.Counter();
-                this.counters.gaiaTableau = new bx.Counter();
-                this.counters.gaiaDeck = new bx.Counter();
-                this.counters.gaiaGaiaCard = new bx.Counter();
-                this.counters.gaiaRound = new bx.Counter([0, 0]);
-                this.counters.gaiaFauna = new bx.Counter([0, 4]);
+                this.counters.gaiaSoil = new bx.Numbers();
+                this.counters.gaiaSprout = new bx.Numbers();
+                this.counters.gaiaGrowth = new bx.Numbers([0, 0]);
+                this.counters.gaiaCompost = new bx.Numbers();
+                this.counters.gaiaTableau = new bx.Numbers();
+                this.counters.gaiaDeck = new bx.Numbers();
+                this.counters.gaiaGaiaCard = new bx.Numbers();
+                this.counters.gaiaRound = new bx.Numbers([0, 0]);
+                this.counters.gaiaFauna = new bx.Numbers([0, 4]);
 
                 this.counters.gaiaRound.registerOnFinishStepValues((counter) => {
                     const counterElem = counter.getTargetElement();

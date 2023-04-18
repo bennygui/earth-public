@@ -26,6 +26,7 @@ require_once('UI.php');
 class RowMgrRegister
 {
     private static $classId;
+    private static $rowMgrs = [];
 
     public static function registerClassId(string $classId)
     {
@@ -41,7 +42,16 @@ class RowMgrRegister
         if ($classId === null) {
             $classId = RowMgr::class;
         }
-        return \BX\Meta\newWithConstructor($classId, $args);
+        $mgr = \BX\Meta\newWithConstructor($classId, $args);
+        self::$rowMgrs[] = $mgr;
+        return $mgr;
+    }
+
+    public static function clearAllMgrCache()
+    {
+        foreach (self::$rowMgrs as $mgr) {
+            $mgr->clearCache();
+        }
     }
 }
 
@@ -296,7 +306,7 @@ class RowMgr
     {
     }
 
-    protected function clearCache()
+    public function clearCache()
     {
         $this->selectRowsCache = [];
     }
