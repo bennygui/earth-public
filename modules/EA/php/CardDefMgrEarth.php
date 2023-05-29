@@ -1257,7 +1257,7 @@ trait CardDefMgrEarth
                 ->ability((new AbilityBuilder())->green()->gain(ABILITY_COMPOST_FROM_HAND, 2)->build())
                 ->ability((new AbilityBuilder())->brown()->gain(ABILITY_PLANT_FREE_COLOR_COMPOST_AND_DRAW, 2)->condition(AB_COND_PER_COLOR, AB_COLOR_RED)
                     ->desc(clienttranslate('Instead of Planting, compost this card and replace with a card with a Red ability at no cost. Then draw 2 cards.'))
-                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card."))
+                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card. On Board Game Arena, when planting, you must select the card you want to plant and then click on this card in your tableau. This will put a red X on the card in your tableau. Then you can click Plant and the card in your tableau will be replaced by the new card from your hand at no cost."))
                     ->build())
                 ->build(),
             (new CardDefBuilder())->terrainId(231)->name(clienttranslate("Alluvial Sediments Terrain"))
@@ -1266,7 +1266,7 @@ trait CardDefMgrEarth
                 ->ability((new AbilityBuilder())->green()->gain(ABILITY_SPROUT, 2)->build())
                 ->ability((new AbilityBuilder())->brown()->gain(ABILITY_PLANT_FREE_COLOR_COMPOST_AND_DRAW, 2)->condition(AB_COND_PER_COLOR, AB_COLOR_BLUE)
                     ->desc(clienttranslate('Instead of Planting, compost this card and replace with a card with a Blue ability at no cost. Then draw 2 cards.'))
-                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card."))
+                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card. On Board Game Arena, when planting, you must select the card you want to plant and then click on this card in your tableau. This will put a red X on the card in your tableau. Then you can click Plant and the card in your tableau will be replaced by the new card from your hand at no cost."))
                     ->build())
                 ->build(),
             (new CardDefBuilder())->terrainId(232)->name(clienttranslate("Flatland Terrain"))
@@ -1275,7 +1275,7 @@ trait CardDefMgrEarth
                 ->ability((new AbilityBuilder())->green()->gain(ABILITY_GROWTH, 1)->build())
                 ->ability((new AbilityBuilder())->brown()->gain(ABILITY_PLANT_FREE_COLOR_COMPOST_AND_DRAW, 2)->condition(AB_COND_PER_COLOR, AB_COLOR_YELLOW)
                     ->desc(clienttranslate('Instead of Planting, compost this card and replace with a card with a Yellow ability at no cost. Then draw 2 cards.'))
-                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card."))
+                    ->faq(clienttranslate("This card replacement takes up one Planting action so this can only be done when the Planting action is chosen. You can replace it with a multicolored card. On Board Game Arena, when planting, you must select the card you want to plant and then click on this card in your tableau. This will put a red X on the card in your tableau. Then you can click Plant and the card in your tableau will be replaced by the new card from your hand at no cost."))
                     ->build())
                 ->build(),
             (new CardDefBuilder())->eventId(233)->name(clienttranslate("Aurora Borealis Event"))->score(0)
@@ -1524,7 +1524,7 @@ trait CardDefMgrEarth
                 ->soil(8)->score(0)
                 ->growth(2, 3)->sprout(2)->sunny()->wet()->rocky()->cold()->bold()
                 ->ability((new AbilityBuilder())->blue()->gain(ABILITY_COPY_OTHER_ABILITY, 1)->condition(AB_COND_PER_COLOR, AB_COLOR_BLUE)
-                    ->desc(clienttranslate('Copy one Blue ability from your island/climate/tableau (may change each use)'))
+                    ->desc(clienttranslate('Copy one Blue ability from your tableau only (may change each use)'))
                     ->faq(clienttranslate('You can copy the ability of a multicolored card. If you copy an ability with instructions, you apply the instructions as if the ability was on the card with the copy ability. For example, if you have a “Swamp Sprouts” in the second column, and you copy the ability from a card in the first column that adds sprouts in the same column as that card, the sprouts are added in the second column since “Swamp Sprouts” (the card which copied the ability) is in the second column.'))
                     ->build())
                 ->ability((new AbilityBuilder())->brown()
@@ -1536,7 +1536,7 @@ trait CardDefMgrEarth
                 ->soil(8)->score(0)
                 ->growth(2, 3)->sprout(2)->sunny()->wet()->rocky()->cold()->underline()
                 ->ability((new AbilityBuilder())->red()->gain(ABILITY_COPY_OTHER_ABILITY, 1)->condition(AB_COND_PER_COLOR, AB_COLOR_RED)
-                    ->desc(clienttranslate('Copy one Red ability from your island/climate/tableau (may change each use)'))->build())
+                    ->desc(clienttranslate('Copy one Red ability from your tableau only (may change each use)'))->build())
                 ->ability((new AbilityBuilder())->brown()
                     ->desc(clienttranslate('Count as all Flora types when scoring (Mushroom, Herb, Bush, Tree)'))->build())
                 ->build(),
@@ -1544,7 +1544,7 @@ trait CardDefMgrEarth
                 ->soil(8)->score(0)
                 ->growth(2, 3)->sprout(2)->sunny()->wet()->rocky()->cold()->italic()
                 ->ability((new AbilityBuilder())->yellow()->gain(ABILITY_COPY_OTHER_ABILITY, 1)->condition(AB_COND_PER_COLOR, AB_COLOR_YELLOW)
-                    ->desc(clienttranslate('Copy one Yellow ability from your island/climate/tableau (may change each use)'))->build())
+                    ->desc(clienttranslate('Copy one Yellow ability from your tableau only (may change each use)'))->build())
                 ->ability((new AbilityBuilder())->brown()
                     ->desc(clienttranslate('Count as all Flora types when scoring (Mushroom, Herb, Bush, Tree)'))->build())
                 ->build(),

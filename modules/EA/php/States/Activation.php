@@ -307,7 +307,7 @@ trait GameStatesTrait
                 'cardIds' => array_values(array_filter(
                     array_map(
                         fn ($c) => $c->cardId,
-                        $cardMgr->getIslandClimateTableauPlayerCardsWithAbilityMatchingMainAction(
+                        $cardMgr->getTableauPlayerCardsWithAbilityMatchingMainAction(
                             $playerId,
                             $activePlayerId,
                             $mainActionId
@@ -329,7 +329,17 @@ trait GameStatesTrait
         $this->updateSeenFaunaObjective($playerId);
 
         $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         $mainActionId = $gameStateMgr->getActiveMainActionId();
+        $activePlayerId = $gameStateMgr->activePlayerId();
+        $cardIdsThatCanBeCopied = array_map(fn($c) => $c->cardId, $cardMgr->getTableauPlayerCardsWithAbilityMatchingMainAction(
+            $playerId,
+            $activePlayerId,
+            $mainActionId
+        ));
+        if (array_search($cardId, $cardIdsThatCanBeCopied) === false) {
+            throw new \BgaSystemException("BUG! Card cannot be copied: $cardId for $mainActionId");
+        }
         $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
         $beforeCopyCardId = $playerStateMgr->stateActivatedBeforeCopyCardId($playerId);
         $ability = \EA\CardDefMgr::getByCardId($cardId)->getAbilityMatchingMainAction($mainActionId);

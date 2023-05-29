@@ -1577,6 +1577,12 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return self::filterActivatableCards($cards, $playerId, $activePlayerId, $mainActionId);
     }
 
+    public function getTableauPlayerCardsWithAbilityMatchingMainAction(int $playerId, int $activePlayerId, int $mainActionId)
+    {
+        $cards = $this->getPlayerTableauCards($playerId, $playerId);
+        return self::filterActivatableCards($cards, $playerId, $activePlayerId, $mainActionId);
+    }
+
     public static function filterActivatableCards(array $cards, int $playerId, int $activePlayerId, int $mainActionId)
     {
         return array_filter($cards, function ($card)  use ($mainActionId, $playerId, $activePlayerId) {
