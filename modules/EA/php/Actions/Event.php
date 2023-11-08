@@ -37,6 +37,16 @@ class KeepReturnFromEventState extends \BX\Action\BaseActionCommand
             $this->privateStateIdInit = true;
         }
 
+        if ($this->privateStateId !== null) {
+            switch ($this->privateStateId) {
+                case STATE_EVENT_CHOOSE_CARD_ID:
+                case STATE_EVENT_SELECT_PAYMENT_ID:
+                case STATE_EVENT_SELECT_GAIN_ID:
+                case STATE_CONVERT_SELECT_PAYMENT_ID:
+                    throw new \BgaUserException($notifier->translate(clienttranslate('You cannot play an event right now')));
+            }
+        }
+
         $playerStateMgr = self::getMgr('player_state');
         $ps = $playerStateMgr->getByPlayerId($this->playerId);
         $ps->modifyAction();

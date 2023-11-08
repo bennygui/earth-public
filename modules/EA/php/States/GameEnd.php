@@ -207,7 +207,7 @@ trait GameStatesTrait
                 );
             }
             if (!isGameModeBeginner() && $pad->playerId != \EA\GAIA_PLAYER_ID) {
-                $playerEcosystemCard = $cardMgr->getPlayerEcosystemCard($playerId);
+                $playerEcosystemCard = $cardMgr->getPlayerEcosystemCard($pad->playerId);
                 $this->notifyAllPlayers(
                     \BX\Action\NTF_MESSAGE,
                     clienttranslate('${player_name} scores ${score} victory point(s) for their personal Ecosystem card: ${cardName}'),

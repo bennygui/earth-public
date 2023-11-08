@@ -1496,7 +1496,7 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
             if (!$isMatch($card)) {
                 continue;
             }
-            $lineCards = $this->buildCardOrthoLine($playerId, $isMatch, $card, [$card], [$card->cardId => true], $orthoAdjacentForCard);
+            $lineCards = $this->buildCardOrthoLine($playerId, $cardId, $isMatch, $card, [$card], [$card->cardId => true], $orthoAdjacentForCard);
             if (count($lineCards) > count($bestLineCards) && count(array_filter($lineCards, fn ($c) => $c->cardId == $cardId)) > 0) {
                 $bestLineCards = $lineCards;
             }
@@ -1504,7 +1504,7 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return $bestLineCards;
     }
 
-    private function buildCardOrthoLine(int $playerId, callable $isMatch, Card $lastCard, array $matchedCards, array $viewedCardIds, array &$orthoAdjacentForCard)
+    private function buildCardOrthoLine(int $playerId, int $searchCardId, callable $isMatch, Card $lastCard, array $matchedCards, array $viewedCardIds, array &$orthoAdjacentForCard)
     {
         $longestMatchCards = $matchedCards;
         foreach ($orthoAdjacentForCard[$lastCard->cardId] as $orthoCard) {
@@ -1513,6 +1513,7 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
             }
             $newMatchCards = $this->buildCardOrthoLine(
                 $playerId,
+                $searchCardId,
                 $isMatch,
                 $orthoCard,
                 array_merge($matchedCards, [$orthoCard]),
@@ -1520,6 +1521,11 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
                 $orthoAdjacentForCard
             );
             if (count($newMatchCards) > count($longestMatchCards)) {
+                $longestMatchCards = $newMatchCards;
+            } else if (
+                count($newMatchCards) == count($longestMatchCards)
+                && count(array_filter($newMatchCards, fn ($c) => $c->cardId == $searchCardId)) > 0
+            ) {
                 $longestMatchCards = $newMatchCards;
             }
         }

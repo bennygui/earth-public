@@ -1111,6 +1111,15 @@ class ScoreEcosystem extends ScoreCardBase
         }
 
         $cards = array_values(self::cardMgr()->getPlayerIslandClimateTableauCards($this->playerId));
+        // Filter to keep only color cards
+        $cards = array_values(array_filter($cards, function ($c) {
+            foreach (\EA\MULTICOLOR_COLORS as $color) {
+                if ($c->getCardDef()->getAbilityMatchingColor($color) !== null) {
+                    return true;
+                }
+            }
+            return false;
+        }));
         $countColor = $this->countColorSets($cards, $countColor);
         $minCountColor = 0;
         if (count($countColor) > 0) {
@@ -1133,7 +1142,6 @@ class ScoreEcosystem extends ScoreCardBase
                 $countColor[$color] -= 1;
             }
         }
-        $newSets[] = $this->countColorSets(array_slice($cards, 1), $countColor);
         $smallestNumber = 0;
         $smallestSet = [];
         foreach ($newSets as $set) {

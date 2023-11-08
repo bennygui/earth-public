@@ -110,6 +110,9 @@ trait GameStatesTrait
             $mainActionId = $gameStateMgr->getActiveMainActionId();
             $afterCopyCardId = $playerStateMgr->stateActivatedAfterCopyCardId($playerId);
 
+            if ($afterCopyCardId === null) {
+                return $this->argsMergeEarthDefault($playerId, []);
+            }
             $ability = \EA\CardDefMgr::getByCardId($afterCopyCardId)->getAbilityMatchingMainAction($mainActionId);
 
             $payment = '';
