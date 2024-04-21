@@ -76,7 +76,7 @@ trait GameStatesTrait
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
             $card = $cardMgr->getPlayerIslandCard($playerId);
             $ret = [
-                'compostFromHandCount' => $card->getCardDef()->abilityBlack()->paymentCountCompostFromHand(),
+                'compostFromHandCount' => $card === null ? 0 : $card->getCardDef()->abilityBlack()->paymentCountCompostFromHand(),
                 'handCardIds' => array_keys($cardMgr->getPlayerHandCards($playerId)),
             ];
             return $ret;

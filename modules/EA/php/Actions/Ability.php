@@ -258,7 +258,7 @@ class ExactCompostFromHand extends CompostFromHandBase
     protected function validateCardCount(\BX\Action\BaseActionCommandNotifier $notifier, int $cardCount)
     {
         if ($cardCount != $this->compostFromHandCount) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must compost the exact number of cards from your hand')));
+            throw new \BgaUserException($notifier->_('You must compost the exact number of cards from your hand'));
         }
         return true;
     }
@@ -276,7 +276,7 @@ class PlaceCompostFromHand extends CompostFromHandBase
         $playerStateMgr = self::getMgr('player_state');
         $ps = $playerStateMgr->getByPlayerId($this->playerId);
         if (count($this->cardIds) > $ps->gainedCompostFromHand) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must compost less cards from your hand')));
+            throw new \BgaUserException($notifier->_('You must compost less cards from your hand'));
         }
         if ($ps->gainedCompostFromHand == 0) {
             return false;
@@ -533,7 +533,7 @@ class PlaceSprout extends \BX\Action\BaseActionCommand
         $playerStateMgr = self::getMgr('player_state');
         $ps = $playerStateMgr->getByPlayerId($this->playerId);
         if ($nbPlacedSprout > $ps->gainedSprout) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must place less sprouts')));
+            throw new \BgaUserException($notifier->_('You must place less sprouts'));
         }
         if ($ps->gainedSprout == 0) {
             $ps->modifyAction();
@@ -636,7 +636,7 @@ class PlaceGrowth extends \BX\Action\BaseActionCommand
         $playerStateMgr = self::getMgr('player_state');
         $ps = $playerStateMgr->getByPlayerId($this->playerId);
         if ($nbPlacedGrowth > $ps->gainedGrowth) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must place less growth')));
+            throw new \BgaUserException($notifier->_('You must place less growth'));
         }
         if ($ps->gainedGrowth == 0) {
             $ps->modifyAction();
@@ -724,7 +724,7 @@ class CompostDestroy extends \BX\Action\BaseActionCommandNoUndo
         $cards = array_values($cardMgr->getPlayerCompostCards($this->playerId));
         usort($cards, fn ($c1, $c2) => $c2->locationOrder - $c1->locationOrder);
         if ($this->nbCard > count($cards)) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You do not have enough cards to discard in your compost')));
+            throw new \BgaUserException($notifier->_('You do not have enough cards to discard in your compost'));
         }
         for ($i = 0; $i < $this->nbCard; ++$i) {
             $cards[$i]->modifyAction();
@@ -788,7 +788,7 @@ class PaySprout extends \BX\Action\BaseActionCommand
                 if ($abilityId == \EA\ABILITY_SPROUT) {
                     $hasPayment = true;
                     if ($nbPayedSprout != $count) {
-                        throw new \BgaUserException($notifier->translate(clienttranslate('You did not paid enough sprouts')));
+                        throw new \BgaUserException($notifier->_('You did not paid enough sprouts'));
                     }
                 }
             });
@@ -881,7 +881,7 @@ class PayGrowth extends \BX\Action\BaseActionCommand
                 if ($abilityId == \EA\ABILITY_GROWTH) {
                     $hasPayment = true;
                     if ($nbPayedGrowth != $count) {
-                        throw new \BgaUserException($notifier->translate(clienttranslate('You did not paid enough growth')));
+                        throw new \BgaUserException($notifier->_('You did not paid enough growth'));
                     }
                 }
             });
@@ -971,7 +971,7 @@ class GainDrawCardFromCompost extends \BX\Action\BaseActionCommandNoUndo
             $drawnCards[] = $card;
         }
         if ($nbDrawnCards <= 0) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('No cards to draw in compost')));
+            throw new \BgaUserException($notifier->_('No cards to draw in compost'));
         }
         self::getMgr('player_state')->incStatNbCardsDrawn($this->playerId, $nbDrawnCards);
         $notifier->notifyPrivateNoMessage(

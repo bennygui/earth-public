@@ -27,7 +27,7 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
     public function do(\BX\Action\BaseActionCommandNotifier $notifier)
     {
         if (array_search($this->mainActionId, self::getChoosableMainActionIds($this->playerId)) === false) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('This action is not available')));
+            throw new \BgaUserException($notifier->_('This action is not available'));
         }
         $leafMgr = $this->getMgr('leaf_token');
         foreach ($leafMgr->getActionLeafTokenForAllPlayers() as $leafToken) {

@@ -495,9 +495,9 @@ abstract class BaseActionCommandNotifier
         return self::$game;
     }
 
-    public function translate(string $text)
+    public function _(string $text)
     {
-        return self::$game::translate($text);
+        return self::$game->_($text);
     }
 
     public function getGameStates()

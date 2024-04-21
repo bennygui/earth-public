@@ -112,6 +112,8 @@ class earth extends Table
 
         self::initGameStateLabels([
             GAME_OPTION_GAME_MODE => GAME_OPTION_GAME_MODE_ID,
+            GAME_OPTION_SOLO_DIFFICULTY => GAME_OPTION_SOLO_DIFFICULTY_ID,
+            GAME_OPTION_HIDE_SETUP => GAME_OPTION_HIDE_SETUP_ID,
         ]);
     }
 
@@ -223,7 +225,8 @@ class earth extends Table
         return $result;
     }
 
-    protected function initTable() {
+    protected function initTable()
+    {
         parent::initTable();
         \BX\DB\RowMgrRegister::clearAllMgrCache();
     }
@@ -233,9 +236,9 @@ class earth extends Table
         return $this->getCurrentPlayerId();
     }
 
-    public static function translate(string $text)
+    public function _($text)
     {
-        return self::_($text);
+        return parent::_($text);
     }
 
     public function getPlayerIdArray()

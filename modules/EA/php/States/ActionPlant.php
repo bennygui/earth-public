@@ -143,7 +143,7 @@ trait GameStatesTrait
                 || !$abilityBrown->hasCanPlantOver()
                 || !$cardDef->hasAbilityMatchingColor($abilityBrown->canPlantOverColor())
             ) {
-                throw new \BgaUserException(self::translate(clienttranslate('You cannot plant this card over the selected terrain')));
+                throw new \BgaUserException($this->_('You cannot plant this card over the selected terrain'));
             }
         }
 
@@ -275,6 +275,9 @@ trait GameStatesTrait
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
             $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
             $cardIds = $playerStateMgr->playerPlantedCardIds($playerId);
+            if (count($cardIds) == 0) {
+                return $this->argsMergeEarthBasic([]);
+            }
 
             $cardId = $cardIds[count($cardIds) - 1];
             $cardDef = \EA\CardDefMgr::getByCardId($cardId);
@@ -283,7 +286,7 @@ trait GameStatesTrait
                 'plantedCardId' => $cardId,
                 'totalCost' => $cardMgr->getPlayerCardCost($playerId, $cardId),
                 'soilCount' => $playerStateMgr->getPlayerSoilCount($playerId),
-                'paymentType' => $abilityBlack->getSpecialPlantingPayment(),
+                'paymentType' => $abilityBlack === null ? null : $abilityBlack->getSpecialPlantingPayment(),
                 'sproutCards' => $cardMgr->getPlayerTableauCountSprout($playerId),
                 'growthCards' => $cardMgr->getPlayerTableauCountGrowth($playerId),
                 'handCardIds' => array_keys($cardMgr->getPlayerHandCards($playerId)),

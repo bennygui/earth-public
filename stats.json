@@ -1,0 +1,261 @@
+{
+    "table": {
+        "STATS_TABLE_NB_ROUND": {
+            "id": 10,
+            "name": "Nb Rounds",
+            "type": "int"
+        }
+    },
+    "player": {
+        "STATS_PLAYER_VP_TOTAL": {
+            "id": 10,
+            "name": "VP Total",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_TABLEAU": {
+            "id": 11,
+            "name": "VP from Tableau Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_TABLEAU": {
+            "id": 12,
+            "name": "Nb Tableau Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_EVENT": {
+            "id": 13,
+            "name": "VP from Event Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_EVENT": {
+            "id": 14,
+            "name": "Nb Event Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_COMPOST": {
+            "id": 15,
+            "name": "VP from Compost",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_COMPOST": {
+            "id": 16,
+            "name": "Nb Compost Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_SPROUT": {
+            "id": 17,
+            "name": "VP from Sprouts",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUT": {
+            "id": 18,
+            "name": "Nb Sprouts",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_GROWTH": {
+            "id": 19,
+            "name": "VP from Growth and Canopies",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_GROWTH_AND_CANOPIES": {
+            "id": 20,
+            "name": "Nb Growth and Canopies",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_CANOPIES": {
+            "id": 21,
+            "name": "Nb Canopies",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_TERRAIN": {
+            "id": 22,
+            "name": "VP from Terrain Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_TERRAIN": {
+            "id": 23,
+            "name": "Nb Terrain Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_PLAYER_ECOSYSTEM": {
+            "id": 24,
+            "name": "VP from Player Ecosystem Card",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_FIRST_ECOSYSTEM": {
+            "id": 25,
+            "name": "VP from First Ecosystem Card",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_SECOND_ECOSYSTEM": {
+            "id": 26,
+            "name": "VP from Second Ecosystem Card",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_TOTAL_ECOSYSTEM": {
+            "id": 27,
+            "name": "VP Total for Ecosystem Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_FAUNA_CARD": {
+            "id": 28,
+            "name": "VP from Fauna Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_FAUNA_TABLEAU": {
+            "id": 29,
+            "name": "VP from Tableau Bonus",
+            "type": "int"
+        },
+        "STATS_PLAYER_VP_FAUNA_TOTAL": {
+            "id": 30,
+            "name": "VP Total for Fauna Board",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_CARD_HAND": {
+            "id": 31,
+            "name": "Nb Cards in Hand at game end",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SOIL": {
+            "id": 32,
+            "name": "Nb Soil in reserve at game end",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_ACTION_PLANT": {
+            "id": 47,
+            "name": "Nb times choose Plant action",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_ACTION_COMPOST": {
+            "id": 48,
+            "name": "Nb times choose Compost action",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_ACTION_WATER": {
+            "id": 49,
+            "name": "Nb times choose Water action",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_ACTION_GROW": {
+            "id": 50,
+            "name": "Nb times choose Grow action",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_CARDS_DRAWN_TOTAL": {
+            "id": 51,
+            "name": "Nb Cards drawn in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_CARDS_COMPOSTED_TOTAL": {
+            "id": 52,
+            "name": "Nb Cards composted in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SOIL_GAINED_TOTAL": {
+            "id": 53,
+            "name": "Nb Soil gained in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_CARDS_PAID_FROM_COMPOST": {
+            "id": 54,
+            "name": "Nb Cards discarded (paid) from compost",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_PLACED_TOTAL": {
+            "id": 55,
+            "name": "Nb Sprouts placed in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_PAID_TOTAL": {
+            "id": 56,
+            "name": "Nb Sprouts discarded (paid) in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_CONVERTED_TOTAL": {
+            "id": 57,
+            "name": "Nb Sprouts converted in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_GROWTH_PLACED_TOTAL": {
+            "id": 58,
+            "name": "Nb Growth placed in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_GROWTH_PAID_TOTAL": {
+            "id": 59,
+            "name": "Nb Growth discarded (paid) in total",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_TOTAL": {
+            "id": 33,
+            "name": "Solo: Gaia VP Total",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_EARTH": {
+            "id": 34,
+            "name": "Solo: Gaia VP from Earth Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_EARTH": {
+            "id": 35,
+            "name": "Solo: Gaia Nb Earth Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_COMPOST": {
+            "id": 36,
+            "name": "Solo: Gaia VP from Compost",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_COMPOST": {
+            "id": 37,
+            "name": "Solo: Gaia Nb Compost",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_SPROUT": {
+            "id": 38,
+            "name": "Solo: Gaia VP from Sprouts",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_SPROUT": {
+            "id": 39,
+            "name": "Solo: Gaia Nb Sprouts",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_GROWTH": {
+            "id": 40,
+            "name": "Solo: Gaia VP from Growth",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_GROWTH_AND_CANOPIES": {
+            "id": 41,
+            "name": "Solo: Gaia Nb Growth and Canopies",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_CANOPIES": {
+            "id": 42,
+            "name": "Solo: Gaia Nb Canopies",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_FAUNA_CARD": {
+            "id": 43,
+            "name": "Solo: Gaia VP from Fauna Cards",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_FAUNA_TABLEAU": {
+            "id": 44,
+            "name": "Solo: Gaia VP from Tableau Bonus",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_VP_FAUNA_TOTAL": {
+            "id": 45,
+            "name": "Solo: Gaia VP Total for Fauna Board",
+            "type": "int"
+        },
+        "STATS_PLAYER_GAIA_NB_SOIL": {
+            "id": 46,
+            "name": "Solo: Gaia Nb Soil in reserve at game end",
+            "type": "int"
+        }
+    }
+}

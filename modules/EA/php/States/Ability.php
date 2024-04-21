@@ -85,6 +85,9 @@ trait GameStatesTrait
             $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
             $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
             $cardId = $playerStateMgr->stateActivatedAfterCopyCardId($playerId);
+            if ($cardId === null) {
+                return $this->argsMergeEarthDefault($playerId, []);
+            }
             $mainActionId = $gameStateMgr->getActiveMainActionId();
             $cardDef = \EA\CardDefMgr::getByCardId($cardId);
             $ability = null;
@@ -92,6 +95,9 @@ trait GameStatesTrait
                 $ability = $cardDef->abilityBlack();
             } else {
                 $ability = $cardDef->getAbilityMatchingMainAction($mainActionId);
+            }
+            if ($ability === null) {
+                return $this->argsMergeEarthDefault($playerId, []);
             }
 
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');

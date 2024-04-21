@@ -335,6 +335,11 @@ class Card extends \BX\Action\BaseActionRow
         $this->privateVisibility = false;
     }
 
+    public function markPrivate()
+    {
+        $this->privateVisibility = true;
+    }
+
     public function moveToDeck(int $order)
     {
         $this->playerId = null;

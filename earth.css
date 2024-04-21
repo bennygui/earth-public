@@ -306,6 +306,21 @@ body {
   box-shadow: 0px 0px 3px white;
 }
 
+.ea-display-empty-deck {
+  padding: 5px;
+  text-align: center;
+  background-color: #c10707;
+  font-weight: bold;
+  margin: 5px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  color: white;
+  box-shadow: 0px 0px 3px black;
+}
+.ea-background-dark .ea-display-empty-deck {
+  box-shadow: 0px 0px 3px white;
+}
+
 .ea-bgabutton-black-border {
   border: 1px solid black;
 }

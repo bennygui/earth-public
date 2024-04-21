@@ -114,6 +114,9 @@ trait GameStatesTrait
                 return $this->argsMergeEarthDefault($playerId, []);
             }
             $ability = \EA\CardDefMgr::getByCardId($afterCopyCardId)->getAbilityMatchingMainAction($mainActionId);
+            if ($ability === null) {
+                return $this->argsMergeEarthDefault($playerId, []);
+            }
 
             $payment = '';
             $ability->foreachPayment(function ($abilityId, $count) use (&$payment) {

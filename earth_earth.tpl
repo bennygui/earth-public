@@ -14,6 +14,9 @@
 <div id="ea-display-last-round" class="bx-hidden">
     <div>{DISPLAY_LAST_ROUND}</div>
 </div>
+<div class="ea-display-empty-deck bx-hidden">
+    <div>{DISPLAY_EMPTY_DECK}</div>
+</div>
 
 <div id="ea-scorepad-container" class="bx-hidden">
     <div id="ea-scorepad">
@@ -237,6 +240,9 @@
     <div id='ea-area-player-{PLAYER_ID}' class='ea-area-player' data-player-id='{PLAYER_ID}'>
         <div class='ea-area-player-title'>
             <h3 class='player-name' style='color: #{PLAYER_COLOR};'>{PLAYER_NAME}</h3>
+        </div>
+        <div class="ea-display-empty-deck bx-hidden">
+            <div>{DISPLAY_EMPTY_DECK}</div>
         </div>
         <div class='ea-area-player-zone'>
             <div class='ea-area-player-tableau-container'>

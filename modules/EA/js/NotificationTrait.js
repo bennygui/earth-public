@@ -198,6 +198,7 @@ define([
                 if (args.args.cardCounts.discardCount !== undefined) {
                     this.deckMgr.updateDiscardCount(args.args.cardCounts.discardCount);
                 }
+                this.deckMgr.updateDrawWarning(args.args.cardCounts.deckCount, args.args.cardCounts.discardCount);
                 if (args.args.cardCounts.handCountByPlayerId !== undefined) {
                     for (const playerId in args.args.cardCounts.handCountByPlayerId) {
                         gameui.counters[playerId].hand.toValue(args.args.cardCounts.handCountByPlayerId[playerId]);

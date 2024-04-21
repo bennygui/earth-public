@@ -32,7 +32,7 @@ trait GameStatesTrait
 
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         if (!$cardMgr->playerCanPlayConversion($playerId)) {
-            throw new \BgaUserException($this->translate(clienttranslate('You do not have enough sprouts to convert')));
+            throw new \BgaUserException($this->_('You do not have enough sprouts to convert'));
         }
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);

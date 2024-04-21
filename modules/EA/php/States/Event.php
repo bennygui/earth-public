@@ -32,7 +32,7 @@ trait GameStatesTrait
 
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         if (!$cardMgr->playerHasEventInHand($playerId)) {
-            throw new \BgaUserException($this->translate(clienttranslate('You do not have any event card to play')));
+            throw new \BgaUserException($this->_('You do not have any event card to play'));
         }
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);

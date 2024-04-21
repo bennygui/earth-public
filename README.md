@@ -8,4 +8,4 @@ repository changes.
 This is my fourth game on BGA and is much more organised, with BX being a
 general library that will be reusable in future games.
 
-This matches version 231108-1348 on BGA.
+This matches version 240413-1500 on BGA.

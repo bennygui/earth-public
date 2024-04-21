@@ -32,6 +32,13 @@ trait GameStatesTrait
             \BX\Action\ActionCommandMgr::commit($playerId);
         }
 
+
+        if ($gameStateMgr->activeGamePhase() == \EA\GAME_PHASE_PLAYER_SETUP) {
+            foreach ($playerIdArray as $playerId) {
+                \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\PlayerSetup\RevealSetup($playerId));
+            }
+        }
+
         // Give extra time
         foreach ($playerIdArray as $playerId) {
             $this->giveExtraTime($playerId);

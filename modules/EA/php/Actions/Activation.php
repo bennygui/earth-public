@@ -170,7 +170,7 @@ class MarkActivatingCopyCard extends \BX\Action\BaseActionCommand
             fn ($cId) => $cId != $cardId
         );
         if (array_search($this->copyCardId, $validCardIds) === false) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must copy one of your cards')));
+            throw new \BgaUserException($notifier->_('You must copy one of your cards'));
         }
 
         $ps = $playerStateMgr->getByPlayerId($this->playerId);

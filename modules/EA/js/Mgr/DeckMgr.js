@@ -30,6 +30,7 @@ define([
                 this.discardCounter.addTarget(this.getDiscardCountElement());
                 this.updateDeckCount(gamedatas.cardCounts.deckCount, true);
                 this.updateDiscardCount(gamedatas.cardCounts.discardCount, true);
+                this.updateDrawWarning(gamedatas.cardCounts.deckCount, gamedatas.cardCounts.discardCount);
             },
 
             getAreaDeckCardsElement() {
@@ -42,6 +43,19 @@ define([
 
             updateDeckCount(deckCount, isInstantaneous = false) {
                 this.updateCount(deckCount, this.deckCounter, this.getAreaDeckCardsElement(), 1, isInstantaneous);
+            },
+
+            updateDrawWarning(deckCount, discardCount) {
+                if (deckCount === undefined || deckCount === null || discardCount === undefined || discardCount === null) {
+                    return;
+                }
+                for (const e of document.querySelectorAll('.ea-display-empty-deck')) {
+                    if (deckCount == 0 && discardCount == 0) {
+                        e.classList.remove('bx-hidden');
+                    } else {
+                        e.classList.add('bx-hidden');
+                    }
+                }
             },
 
             getAreaDiscardCardsElement() {

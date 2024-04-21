@@ -88,6 +88,30 @@ $game_options = [
             ],
         ],
     ],
+    GAME_OPTION_HIDE_SETUP_ID => [
+        'name' => totranslate('Setup Card Visibility'),
+        'default' => GAME_OPTION_HIDE_SETUP_VALUE_VISIBLE,
+        'level' => 'additional',
+        'values' => [
+            GAME_OPTION_HIDE_SETUP_VALUE_VISIBLE => [
+                'name' => totranslate('Visible'),
+                'tmdisplay' => totranslate('Visible Setup'),
+                'description' => totranslate('Show Island, Climate and Ecosystem cards as soon as they are choosen'),
+            ],
+            GAME_OPTION_HIDE_SETUP_VALUE_HIDDEN => [
+                'name' => totranslate('Hidden'),
+                'tmdisplay' => totranslate('Hidden Setup'),
+                'description' => totranslate('Hide Island, Climate and Ecosystem cards until the end of the setup'),
+                'nobeginner' => true,
+            ],
+        ],
+        'displaycondition' => [
+            [
+                'type' => 'minplayers',
+                'value' => [2, 3, 4, 5],
+            ],
+        ],
+    ],
 ];
 
 $game_preferences = [

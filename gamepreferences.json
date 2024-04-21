@@ -1,0 +1,71 @@
+{
+    "200": {
+        "name": "Display tooltips",
+        "needReload": false,
+        "generic": true,
+        "values": [
+            {
+                "name": "Enabled"
+            },
+            {
+                "name": "Disabled"
+            }
+        ]
+    },
+    "150": {
+        "name": "Subtle environment animations",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Enabled"
+            },
+            "0": {
+                "name": "Disabled",
+                "cssPref": "ea-hide-environment-animations"
+            }
+        },
+        "default": 1
+    },
+    "151": {
+        "name": "Confirm main action",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Enabled",
+                "cssPref": "ea-pref-confim-actions"
+            },
+            "0": {
+                "name": "Disabled"
+            }
+        },
+        "default": 0
+    },
+    "152": {
+        "name": "Colorblind mode",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Enabled"
+            },
+            "0": {
+                "name": "Disabled",
+                "cssPref": "ea-colorblind-inactive"
+            }
+        },
+        "default": 0
+    },
+    "153": {
+        "name": "Show pieces shadow",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Enabled"
+            },
+            "0": {
+                "name": "Disabled",
+                "cssPref": "ea-piece-shadow-inactive"
+            }
+        },
+        "default": 1
+    }
+}

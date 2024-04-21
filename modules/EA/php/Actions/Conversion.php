@@ -75,7 +75,7 @@ class ConvertSprout extends \BX\Action\BaseActionCommand
             $nbPayedSprout += $this->payedSproutList[$i + 1];
         }
         if ($nbPayedSprout <= 0 || ($nbPayedSprout % 3) != 0) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You must select a multiple of 3 sprouts (3, 6, 9, ...)')));
+            throw new \BgaUserException($notifier->_('You must select a multiple of 3 sprouts (3, 6, 9, ...)'));
         }
         $this->nbGainedSoil = 2 * floor($nbPayedSprout / 3);
         foreach ($cardMgr->getPlayerTableauCountSprout($this->playerId) as $count) {

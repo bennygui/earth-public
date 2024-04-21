@@ -43,7 +43,7 @@ class KeepReturnFromEventState extends \BX\Action\BaseActionCommand
                 case STATE_EVENT_SELECT_PAYMENT_ID:
                 case STATE_EVENT_SELECT_GAIN_ID:
                 case STATE_CONVERT_SELECT_PAYMENT_ID:
-                    throw new \BgaUserException($notifier->translate(clienttranslate('You cannot play an event right now')));
+                    throw new \BgaUserException($notifier->_('You cannot play an event right now'));
             }
         }
 
@@ -101,7 +101,7 @@ class PlayEventCard extends \BX\Action\BaseActionCommand
     {
         $card = $this->cardFromHand($this->cardId);
         if (!$card->getCardDef()->isEvent()) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You can only play event cards')));
+            throw new \BgaUserException($notifier->_('You can only play event cards'));
         }
         $cardMgr = self::getMgr('card');
         $this->undoCard = \BX\META\deepClone($card);
@@ -151,7 +151,7 @@ class EventKeepOneCard extends \BX\Action\BaseActionCommandNoUndo
             return;
         }
         if (count($this->cardIds) > 1) {
-            throw new \BgaUserException($notifier->translate(clienttranslate('You can only select one card to keep')));
+            throw new \BgaUserException($notifier->_('You can only select one card to keep'));
         }
         $notifier->notify(
             \BX\Action\NTF_MESSAGE,

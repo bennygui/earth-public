@@ -190,7 +190,7 @@ trait GameStatesTrait
                     break;
             }
             if (!$canPay) {
-                throw new \BgaUserException(self::_(clienttranslate('You cannot activate this card: you do not have enough to pay')));
+                throw new \BgaUserException($this->_('You cannot activate this card: you do not have enough to pay'));
             }
         });
     }
@@ -222,10 +222,11 @@ trait GameStatesTrait
     private function addInstantGain(int $cardId, \BX\Action\ActionCommandCreatorInterface $creator, \EA\Ability $ability)
     {
         $ability->foreachGain(function ($abilityId, $count) use ($cardId, $creator, $ability) {
+            $isEvent = \EA\CardDefMgr::getByCardId($cardId)->isEvent();
             $count = $this->countAbilityGain($cardId, $creator, $ability, $count, null);
             switch ($abilityId) {
                 case \EA\ABILITY_DRAW_CARD_FROM_DECK:
-                    $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($creator->getPlayerId(), $count));
+                    $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($creator->getPlayerId(), $count, false, $isEvent));
                     break;
                 case \EA\ABILITY_SOIL:
                     $creator->add(new \EA\Actions\Ability\GainSoil($creator->getPlayerId(), $count, $cardId));

@@ -64,6 +64,18 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
         if (isGameModeBeginner()) {
             unset($validCardTypes[\EA\CARD_TYPE_ECOSYSTEM]);
         }
+        $notifier->notify(
+            \BX\Action\NTF_MESSAGE,
+            clienttranslate('${player_name} chooses their starting cards'),
+            []
+        );
+        if (isSetupHidden()) {
+            $notifier->notify(
+                \BX\Action\NTF_MESSAGE,
+                clienttranslate('Starting cards for ${player_name} will be hidden until the end of the setup'),
+                []
+            );
+        }
         foreach ($this->cardIds as $cardId) {
             $card = $this->cardFromHand($cardId);
             $cardType = $card->getCardDef()->type;
@@ -76,6 +88,63 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
             }
             $card->modifyAction();
             $card->moveToPlayerBoard($this->playerId);
+            if (isSetupHidden()) {
+                $card->markPrivate();
+                $notifier->notifyPrivate(
+                    NTF_UPDATE_CARDS,
+                    clienttranslate('${player_name} chooses a starting card: ${cardName} ${cardImage}'),
+                    [
+                        'cards' => [$card],
+                        'cardName' => $card->getCardDef()->name,
+                        'cardImage' => $card->cardId,
+                        'i18n' => ['cardName'],
+                    ]
+                );
+            } else {
+                $notifier->notify(
+                    NTF_UPDATE_CARDS,
+                    clienttranslate('${player_name} chooses a starting card: ${cardName} ${cardImage}'),
+                    [
+                        'cards' => [$card],
+                        'cardName' => $card->getCardDef()->name,
+                        'cardImage' => $card->cardId,
+                        'i18n' => ['cardName'],
+                    ]
+                );
+            }
+        }
+        $cardMgr = self::getMgr('card');
+        $discardCards = [];
+        foreach ($cardMgr->getPlayerHandCards($this->playerId) as $card) {
+            $card->modifyAction();
+            $card->moveToBox();
+            $discardCards[] = $card;
+        }
+        $notifier->notifyPrivateNoMessage(NTF_UPDATE_CARDS, ['cards' => $discardCards]);
+    }
+}
+
+class RevealSetup extends \BX\Action\BaseActionCommandNoUndo
+{
+    public function __construct(int $playerId)
+    {
+        parent::__construct($playerId);
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $cardMgr = self::getMgr('card');
+        $cards = [
+            $cardMgr->getPlayerIslandCard($this->playerId),
+            $cardMgr->getPlayerClimateCard($this->playerId),
+            $cardMgr->getPlayerEcosystemCard($this->playerId),
+        ];
+        foreach ($cards as $card) {
+            if ($card === null || !$card->isPrivateVisible()) {
+                continue;
+            }
+            $card->modifyAction();
+            $card->markPublic();
             $notifier->notify(
                 NTF_UPDATE_CARDS,
                 clienttranslate('${player_name} chooses a starting card: ${cardName} ${cardImage}'),
@@ -87,13 +156,5 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
                 ]
             );
         }
-        $cardMgr = self::getMgr('card');
-        $discardCards = [];
-        foreach ($cardMgr->getPlayerHandCards($this->playerId) as $card) {
-            $card->modifyAction();
-            $card->moveToBox();
-            $discardCards[] = $card;
-        }
-        $notifier->notifyPrivateNoMessage(NTF_UPDATE_CARDS, ['cards' => $discardCards]);
     }
 }
