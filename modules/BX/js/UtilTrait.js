@@ -9,13 +9,13 @@
  */
 
 var isDebug = window.location.host == 'studio.boardgamearena.com' || window.location.hash.indexOf('debug') > -1;
-var debug = isDebug ? console.info.bind(window.console) : function() {};
+var debug = isDebug ? console.info.bind(window.console) : function () { };
 
 define([
-        "dojo",
-        "dojo/_base/declare",
-    ],
-    function(dojo, declare) {
+    "dojo",
+    "dojo/_base/declare",
+],
+    function (dojo, declare) {
         return declare("bx.UtilTrait", null, {
             toPascalCase(str) {
                 return this.toCamelCase(' ' + str);
@@ -64,11 +64,38 @@ define([
                 return true;
             },
 
+            deepClone(o) {
+                return JSON.parse(JSON.stringify(o));
+            },
+
             areArraysEqual(a, b) {
                 if (a.length != b.length) {
                     return false;
                 }
                 return a.every((v, i) => v == b[i]);
+            },
+
+            isTrue(v) {
+                if (v === undefined || v === null || v === false) {
+                    return false;
+                }
+                if (v === true || v === 'true' || (!isNaN(v) && parseInt(v) != 0)) {
+                    return true;
+                }
+                return false;
+            },
+            isFalse(v) {
+                return !this.isTrue(v);
+            },
+
+            rotateValueToFront(array, value) {
+                const index = array.indexOf(value);
+                if (index <= 0) {
+                    return array.slice();
+                }
+                const front = array.slice(0, index);
+                const back = array.slice(index);
+                return back.concat(front);
             },
         });
     });

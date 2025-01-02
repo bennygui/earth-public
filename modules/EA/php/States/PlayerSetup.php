@@ -61,6 +61,13 @@ trait GameStatesTrait
         $creator->add($chooseAction);
         $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($playerId, $chooseAction->nbCardsToDraw()));
         $creator->add(new \EA\Actions\Ability\GainSoil($playerId, $chooseAction->nbSoilToGain(), $chooseAction->getIslandCardId()));
+        $climateCardId = $chooseAction->getClimateCardId();
+        if ($climateCardId !== null) {
+            $abilityBlack = \EA\CardDefMgr::getByCardId($climateCardId)->abilityBlack();
+            if ($abilityBlack !== null) {
+                $this->addInstantGain($climateCardId, $creator, $abilityBlack);
+            }
+        }
         $this->addCommonActions($creator);
         if ($chooseAction->hasCardsToCompost()) {
             $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'hasCardToCompost'));

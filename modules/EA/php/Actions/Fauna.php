@@ -26,24 +26,39 @@ class MoveLeafTokenToFinalPosition extends \BX\Action\BaseActionCommandNoUndo
     {
         $cardMgr = self::getMgr('card');
         $leafTokenMgr = self::getMgr('leaf_token');
-        foreach ($leafTokenMgr->getFaunaLeafTokenByPlayerId($this->playerId) as $token) {
+        foreach ($leafTokenMgr->getLeafTokenByPlayerId($this->playerId) as $token) {
             if (!$token->isOnFaunaBoardFauna() || $token->locationOrder !== null) {
                 continue;
             }
+            $faunaX = $token->locationX;
+            $faunaY = $token->locationY;
 
             $max = -1;
-            foreach ($leafTokenMgr->getFaunaLeafTokenAtFaunaForLocation($token->locationX, $token->locationY) as $otherToken) {
+            foreach ($leafTokenMgr->getFaunaLeafTokenAtFaunaForLocation($faunaX, $faunaY) as $otherToken) {
                 if ($otherToken->locationOrder !== null && $otherToken->locationOrder > $max) {
                     $max = $otherToken->locationOrder;
                 }
             }
+            $max = $max + 1;
+            $returnLeafToPlayer = false;
+            if ($max >= \EA\MAX_FAUNA_LEAFS_OR_FAUNA_BOARD) {
+                $returnLeafToPlayer = true;
+            }
             $token->modifyAction();
-            $token->moveToFaunaBoardFaunaFinalOrder($max + 1);
+            if ($returnLeafToPlayer) {
+                $token->moveToPlayerBoard();
+            } else {
+                $token->moveToFaunaBoardFaunaFinalOrder($max);
+            }
 
-            $card = $cardMgr->getFaunaCardAtLocation($token->locationX, $token->locationY);
+            $card = $cardMgr->getFaunaCardAtLocation($faunaX, $faunaY);
             $message = '';
             if (!isGameModeBeginner()) {
-                $message = clienttranslate('${player_name} takes position ${position} for a Fauna objective: ${cardName} ${cardImage}');
+                if ($returnLeafToPlayer) {
+                    $message = clienttranslate('${player_name} cannot claim Fauna objective, the Fauna board is already full: ${cardName} ${cardImage}');
+                } else {
+                    $message = clienttranslate('${player_name} takes position ${position} for a Fauna objective: ${cardName} ${cardImage}');
+                }
             }
             $notifier->notify(
                 NTF_UPDATE_LEAF_TOKEN,
@@ -72,7 +87,7 @@ class RevealPrivateFauna extends \BX\Action\BaseActionCommandNoUndo
         $cardMgr = self::getMgr('card');
         $gameStateMgr = self::getMgr('game_state');
         $leafTokenMgr = self::getMgr('leaf_token');
-        foreach ($leafTokenMgr->getFaunaLeafTokenByPlayerId($this->playerId) as $token) {
+        foreach ($leafTokenMgr->getLeafTokenByPlayerId($this->playerId) as $token) {
             if (!$token->hasPrivateLocation()) {
                 continue;
             }
@@ -133,6 +148,7 @@ const FAUNA_ABILITY_TO_ACTION_CLASS = [
     \EA\AB_FAUNA_FLORA_EMPTY_FIECES => 'FaunaActionFloraEmptyFieces',
     \EA\AB_FAUNA_CARDS_WITH_EVEN_SCORE => 'FaunaActionCardsWithEvenScore',
     \EA\AB_FAUNA_CARDS_WITH_ODD_SCORE => 'FaunaActionCardsWithOddScore',
+    \EA\AB_FAUNA_GERMINATE_CONDITION => 'FaunaActionCardsGerminate',
 ];
 
 function getFaunaAction(int $playerId, int $cardId, bool $considerPrivateVisibility)
@@ -174,9 +190,8 @@ class FaunaProgress extends \BX\UI\UISerializable
 
     public function jsonSerialize()
     {
-        $ret = parent::jsonSerialize();
-        $ret['hasRequirements'] = $this->hasRequirements();
-        return $ret;
+        $hasRequirements = ($this->hasRequirements() ? 1 : 0);
+        return "{$this->progress}|{$this->objective}|{$hasRequirements}";
     }
 }
 
@@ -207,9 +222,21 @@ abstract class FaunaActionBase extends \BX\Action\BaseActionCommand
             throw new \BgaSystemException("BUG! Card {$this->cardId} is not a fauna card");
         }
         $leafTokenMgr = self::getMgr('leaf_token');
-        $this->leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
-        $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($this->leafId, $this->playerId);
-        if ($token->isOnFaunaBoard()) {
+        if ($leafTokenMgr->isFaunaPositionFull($card->locationX, $card->locationY)) {
+            return;
+        }
+
+        $token = null;
+        if (gameHasExpansionAbundance()) {
+            $token = $leafTokenMgr->getLeafTokenCanBeOnFaunaBoardByPositiondAndPlayerId($card->locationX, $card->locationY, $this->playerId);
+            if ($token !== null) {
+                $this->leafId = $token->leafId;
+            }
+        } else {
+            $this->leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
+            $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($this->leafId, $this->playerId);
+        }
+        if ($token === null || $token->isOnFaunaBoard()) {
             return;
         }
         if ($this->hasFaunaRequirements === null) {
@@ -290,14 +317,21 @@ abstract class FaunaActionBase extends \BX\Action\BaseActionCommand
         if ($card === null || !$card->getCardDef()->isFauna()) {
             throw new \BgaSystemException("BUG! Card {$this->cardId} is not a fauna card");
         }
-        $leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
-        $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($leafId, $this->playerId);
-        if (
-            ($this->considerPrivateVisibility && $token->isOnFaunaBoard())
-            ||
-            (!$this->considerPrivateVisibility && $token->isOnFaunaBoardFaunaPublic())
-        ) {
-            return FaunaProgress::newWithRequirements();
+        $token = null;
+        if (gameHasExpansionAbundance()) {
+            $token = $leafTokenMgr->getLeafTokenCanBeOnFaunaBoardByPositiondAndPlayerId($card->locationX, $card->locationY, $this->playerId, $this->considerPrivateVisibility);
+        } else {
+            $leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
+            $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($leafId, $this->playerId);
+        }
+        if ($token !== null) {
+            if (
+                ($this->considerPrivateVisibility && $token->isOnFaunaBoard())
+                ||
+                (!$this->considerPrivateVisibility && $token->isOnFaunaBoardFaunaPublic())
+            ) {
+                return FaunaProgress::newWithRequirements();
+            }
         }
         $scores = $card->getCardDef()->getFirstAbility()->getScores();
         return $this->playerGetFaunaProgress($this->playerId, $scores);
@@ -969,6 +1003,23 @@ class FaunaActionCardsWithOddScore extends FaunaActionBase
         $countNbCard = 0;
         foreach ($this->getPlayerIslandClimateTableauCards() as $card) {
             if (($card->getCardDef()->score % 2) == 1) {
+                $countNbCard += 1;
+            }
+        }
+        return new FaunaProgress($countNbCard, $scoreNbCard);
+    }
+}
+
+class FaunaActionCardsGerminate extends FaunaActionBase
+{
+    protected function onGetPlayerFaunaProgress(int $playerId, array $scores)
+    {
+        $scoreNbCard = array_shift($scores);
+        $germinateId = array_shift($scores);
+        $filter = \EA\CardDef::germinateIdToFilter($germinateId);
+        $countNbCard = 0;
+        foreach ($this->getPlayerIslandClimateTableauCards() as $card) {
+            if ($filter($card->getCardDef())) {
                 $countNbCard += 1;
             }
         }

@@ -66,15 +66,19 @@ class LeafTokenBonusLastRound extends LastRoundActionBase
         if (!$cardMgr->isTableauFilledForPlayer($this->playerId)) {
             return;
         }
-        $leafToken = $leafTokenMgr->getTableauBonusLeafTokenForPlayerId($this->playerId);
-        $leafToken->modifyAction();
-        $leafToken->moveToFaunaBoardTableauBonus();
-        $notifier->notify(
-            NTF_UPDATE_LEAF_TOKEN,
-            clienttranslate('${player_name} claims the 4x4 tableau bonus on the fauna board'),
-            [
-                'leafToken' => $leafToken->toPlayerUI($this->playerId),
-            ]
-        );
+        $leafToken = gameHasExpansionAbundance()
+            ? $leafTokenMgr->getLeafTokenCanBeOnTableauBonusByPlayerId($this->playerId)
+            : $leafTokenMgr->getTableauBonusLeafTokenForPlayerId($this->playerId);
+        if ($leafToken !== null) {
+            $leafToken->modifyAction();
+            $leafToken->moveToFaunaBoardTableauBonus();
+            $notifier->notify(
+                NTF_UPDATE_LEAF_TOKEN,
+                clienttranslate('${player_name} claims the 4x4 tableau bonus on the fauna board'),
+                [
+                    'leafToken' => $leafToken->toPlayerUI($this->playerId),
+                ]
+            );
+        }
     }
 }

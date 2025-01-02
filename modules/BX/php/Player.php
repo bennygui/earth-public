@@ -42,11 +42,12 @@ class PlayerMgr extends \BX\Action\BaseActionRowMgr
     public function __construct(string $playerClassId = '\BX\Player\Player')
     {
         parent::__construct('player', $playerClassId);
-        $this->db->setUseCache(false);
+        $this->setUseCache(false);
     }
 
     public function setup(array $setupNewGamePlayers, array $colors)
     {
+        $availableColors = $colors;
         foreach ($setupNewGamePlayers as $playerId => $setupPlayer) {
             $p = $this->db->newRow();
             $p->playerId = $playerId;
@@ -56,11 +57,17 @@ class PlayerMgr extends \BX\Action\BaseActionRowMgr
             $p->playerAvatar = $setupPlayer['player_avatar'];
             $this->db->insertRow($p);
         }
+        return $availableColors;
     }
 
     public function getAll()
     {
         return $this->getAllRowsByKey();
+    }
+
+    public function getAllForUI(bool $gameHasEnded)
+    {
+        return \BX\UI\deepCopyToArray($this->getAllRowsByKey());
     }
 
     public function getPlayerCount()
@@ -92,6 +99,24 @@ class PlayerMgr extends \BX\Action\BaseActionRowMgr
         return $playerIdArray;
     }
 
+    public function getAllPlayerIdsByScore()
+    {
+        $players = $this->getAllRowsByKey();
+        $playerIdArray = array_keys($players);
+        usort($playerIdArray, function ($p1, $p2) use (&$players) {
+            $cmp = ($players[$p2]->playerScore <=> $players[$p1]->playerScore);
+            if ($cmp != 0) {
+                return $cmp;
+            }
+            $cmp = ($players[$p2]->playerScoreAux <=> $players[$p1]->playerScoreAux);
+            if ($cmp != 0) {
+                return $cmp;
+            }
+            return ($players[$p1]->playerNo <=> $players[$p2]->playerNo);
+        });
+        return $playerIdArray;
+    }
+
     public function getFirstPlayerId()
     {
         $playerIdArray = $this->getAllPlayerIds();
@@ -99,6 +124,20 @@ class PlayerMgr extends \BX\Action\BaseActionRowMgr
             return null;
         }
         return $playerIdArray[0];
+    }
+
+    public function updatePlayerScoreNow(int $playerId, int $score)
+    {
+        $p = $this->getByPlayerId($playerId);
+        $p->playerScore = $score;
+        $this->db->updateRow($p);
+    }
+
+    public function updatePlayerScoreAuxNow(int $playerId, int $aux)
+    {
+        $p = $this->getByPlayerId($playerId);
+        $p->playerScoreAux = $aux;
+        $this->db->updateRow($p);
     }
 
     public function debugResetScores()
@@ -130,7 +169,7 @@ class UpdatePlayerScoreActionCommand extends \BX\Action\BaseActionCommand
         if ($scoreToAdd === null) {
             $scoreToAdd = $this->scoreToAdd;
         }
-        if ($scoreToAdd === null || $scoreToAdd == 0) {
+        if ($scoreToAdd === null) {
             return;
         }
         $playerMgr = self::getMgr('player');
@@ -139,7 +178,7 @@ class UpdatePlayerScoreActionCommand extends \BX\Action\BaseActionCommand
         $player->modifyAction();
         $player->playerScore += $scoreToAdd;
         if ($notifLog === null) {
-            if ($scoreToAdd > 0) {
+            if ($scoreToAdd >= 0) {
                 $notifLog = clienttranslate('${player_name} scores ${scorePositive} point(s)');
             } else {
                 $notifLog = clienttranslate('${player_name} loses ${scorePositive} point(s)');

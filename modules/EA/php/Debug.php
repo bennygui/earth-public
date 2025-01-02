@@ -19,15 +19,17 @@ trait GameStatesTrait
 {
     use \BX\Debug\GameStatesTrait;
 
-    public function debugLoadBug()
+    public function debugLoadBug(array $studioPlayers = [])
     {
-        $this->debugLoadBugInternal(function ($studioPlayerId, $replacePlayerId) {
+        $this->debugLoadBugInternal($studioPlayers, function ($studioPlayerId, $replacePlayerId) {
             return array_merge(
                 $this->debugGetSqlForActionCommand($studioPlayerId, $replacePlayerId),
                 [
                     "UPDATE `card` SET player_id = $studioPlayerId WHERE player_id = $replacePlayerId",
                     "UPDATE `leaf_token` SET player_id = $studioPlayerId WHERE player_id = $replacePlayerId",
                     "UPDATE `player_state` SET player_id = $studioPlayerId WHERE player_id = $replacePlayerId",
+                    "UPDATE `player_exchange` SET from_player_id = $studioPlayerId WHERE from_player_id = $replacePlayerId",
+                    "UPDATE `player_exchange` SET to_player_id = $studioPlayerId WHERE to_player_id = $replacePlayerId",
                     "UPDATE `game_state` SET active_player_id = $studioPlayerId WHERE active_player_id = $replacePlayerId",
                     "UPDATE `player_score` SET player_id = $studioPlayerId WHERE player_id = $replacePlayerId",
                 ],
@@ -71,6 +73,14 @@ trait GameStatesTrait
         $playerId = $this->getCurrentPlayerId();
         $creator = new \BX\Action\ActionCommandCreator($playerId);
         $creator->add(new \EA\Actions\Ability\GainSoil($playerId, 100, null));
+        $creator->save();
+    }
+
+    public function debugGetSeed()
+    {
+        $playerId = $this->getCurrentPlayerId();
+        $creator = new \BX\Action\ActionCommandCreator($playerId);
+        $creator->add(new \EA\Actions\Ability\GainSeed($playerId, 100, null));
         $creator->save();
     }
 
@@ -129,7 +139,9 @@ trait GameStatesTrait
 
         \BX\Action\ActionRowMgrRegister::getMgr('leaf_token')->debugShuffePlacedLeafTokens();
 
-        $this->gamestate->jumpToState(STATE_GAME_ENDING_LAST_CHANCE_ID);
+        $this->updateEndTurnScores();
+
+        $this->gamestate->jumpToState(STATE_PRE_GAME_ENDING_LAST_CHANCE_ID);
 
         $this->debugSendReload();
     }

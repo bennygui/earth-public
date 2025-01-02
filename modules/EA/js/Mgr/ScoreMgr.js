@@ -22,7 +22,66 @@ define([
 
             setup(gamedatas) {
                 this.scorepad = null;
-                this.activateScorepad(gamedatas.scorepad, true);
+                this.activateScorepad(gamedatas.scorepad, gamedatas.gameHasEnded, true);
+            },
+
+            getPlayerEcosystemProgressAndScore(playerId) {
+                const pad = this.getPlayerPad(playerId);
+                if (pad == null) {
+                    return '';
+                }
+                return this.getProgressAndScore(pad.progressPlayerEcosystem, pad.scorePlayerEcosystem);
+            },
+
+            getPublicEcosystem1ProgressAndScore(playerId) {
+                const pad = this.getPlayerPad(playerId);
+                if (pad == null) {
+                    return '';
+                }
+                return this.getProgressAndScore(pad.progressPublicEcosystem1, pad.scorePublicEcosystem1);
+            },
+
+            getPublicEcosystem2ProgressAndScore(playerId) {
+                const pad = this.getPlayerPad(playerId);
+                if (pad == null) {
+                    return '';
+                }
+                return this.getProgressAndScore(pad.progressPublicEcosystem2, pad.scorePublicEcosystem2);
+            },
+
+            getTerrainScore(cardId) {
+                if (this.scorepad == null) {
+                    return null;
+                }
+                for (const pad of this.scorepad) {
+                    if (cardId in pad.scoreTerrainPerCardId) {
+                        return pad.scoreTerrainPerCardId[cardId];
+                    }
+                }
+                return null;
+            },
+
+            getPlayerPad(playerId) {
+                if (this.scorepad == null) {
+                    return null;
+                }
+                for (const pad of this.scorepad) {
+                    if (pad.playerId == playerId) {
+                        return pad;
+                    }
+                }
+                return null;
+            },
+
+            hasScores() {
+                if (this.scorepad == null || this.scorepad.length == 0) {
+                    return false;
+                }
+                return true;
+            },
+
+            getProgressAndScore(progress, score) {
+                return progress + ' &#x21e8; ' + score + ' <div class="ea-icon-leaf"></div>';
             },
 
             getScorepadContainer() {
@@ -45,10 +104,10 @@ define([
                 }
             },
 
-            activateScorepad(scorepad, isInstantaneous = false) {
+            activateScorepad(scorepad, gameHasEnded, isInstantaneous = false) {
                 this.scorepad = scorepad;
                 const scorepadContainer = this.getScorepadContainer();
-                if (scorepad.length == 0) {
+                if (scorepad.length == 0 || !gameui.isTrue(gameHasEnded)) {
                     scorepadContainer.classList.add('bx-hidden');
                     return Promise.resolve();
                 }

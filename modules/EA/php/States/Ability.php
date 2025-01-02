@@ -48,6 +48,15 @@ trait GameStatesTrait
                 $args['compostFromHandIcon'] = clienttranslate('compost');
                 $args['i18n'][] = 'compostFromHandIcon';
             }
+            if ($ps->gainedSproutChooseOne > 0) {
+                $hasGain = true;
+                $logs[] = '${onePlayerIcon} ${gainedSproutChooseOne} ${sproutIcon}';
+                $args['gainedSproutChooseOne'] = $ps->gainedSproutChooseOne;
+                $args['sproutIcon'] = clienttranslate('sprout(s)');
+                $args['onePlayerIcon'] = clienttranslate('one player');
+                $args['i18n'][] = 'sproutIcon';
+                $args['i18n'][] = 'onePlayerIcon';
+            }
             $handChoosingCards = $cardMgr->getPlayerHandChoosingCards($playerId);
             if (count($handChoosingCards) > 0) {
                 $hasGain = true;
@@ -66,6 +75,7 @@ trait GameStatesTrait
                 'sproutCards' => $cardMgr->getPlayerTableauCountSprout($playerId),
                 'gainedGrowth' => $ps->gainedGrowth,
                 'growthCards' => $cardMgr->getPlayerTableauCountGrowth($playerId),
+                'gainedSproutChooseOne' => $ps->gainedSproutChooseOne,
                 'gainedCardIdList' => $ps->getGainedCardIdList(),
                 'isGainedCardIdListDivided' => $ps->isGainedCardIdListDivided(),
                 'gainedCompostFromHand' => $ps->gainedCompostFromHand,
@@ -74,6 +84,8 @@ trait GameStatesTrait
                 'activatedAfterCopyCardId' => $playerStateMgr->stateActivatedAfterCopyCardId($playerId),
                 'handChoosingCardIds' => array_keys($handChoosingCards),
                 'mainActionId' => $gameStateMgr->getActiveMainActionId(),
+                'seedIcon' => clienttranslate('seed'),
+                'sproutIcon' => clienttranslate('sprout'),
             ];
             return $this->argsMergeEarthBasic($ret);
         });

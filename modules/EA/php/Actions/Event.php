@@ -60,6 +60,24 @@ class KeepReturnFromEventState extends \BX\Action\BaseActionCommand
     }
 }
 
+class KeepReturnFromSoloEndTurnEventState extends \BX\Action\BaseActionCommand
+{
+    public function __construct(int $playerId)
+    {
+        parent::__construct($playerId);
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerStateMgr = self::getMgr('player_state');
+        $ps = $playerStateMgr->getByPlayerId($this->playerId);
+        $ps->modifyAction();
+        $ps->returnFromEventStateId = STATE_END_TURN_CHOOSE_ID ;
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier) {}
+}
+
 class RestoreCardActivation extends \BX\Action\BaseActionCommand
 {
     public function __construct(int $playerId)
@@ -90,6 +108,7 @@ class PlayEventCard extends \BX\Action\BaseActionCommand
     private $cardId;
     private $undoCard;
     private $undoEventCards;
+    private $undoCardCounts;
 
     public function __construct(int $playerId, int $cardId)
     {
@@ -106,6 +125,7 @@ class PlayEventCard extends \BX\Action\BaseActionCommand
         $cardMgr = self::getMgr('card');
         $this->undoCard = \BX\META\deepClone($card);
         $this->undoEventCards = \BX\Meta\deepClone($cardMgr->getPlayerBoardEventCards($this->playerId));
+        $this->undoCardCounts = \BX\Meta\deepClone($cardMgr->getCardCountsUIForPlayerId($this->playerId));
 
         $card->modifyAction();
         $card->moveToPlayerBoard($this->playerId);
@@ -124,12 +144,21 @@ class PlayEventCard extends \BX\Action\BaseActionCommand
                 'cards' => $cardMgr->getPlayerBoardEventCards($this->playerId),
             ]
         );
+        $notifier->notifyNoMessage(
+            NTF_UPDATE_CARD_COUNTS,
+            [
+                'cardCounts' => $cardMgr->getCardCountsUIForPlayerId($this->playerId),
+            ]
+        );
     }
 
     public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
     {
         $notifier->notifyNoMessage(NTF_UPDATE_CARDS, ['cards' => [$this->undoCard]]);
         $notifier->notifyNoMessage(NTF_UPDATE_PLAYER_EVENT, ['cards' => $this->undoEventCards]);
+        if ($this->undoCardCounts !== null) {
+            $notifier->notifyNoMessage(NTF_UPDATE_CARD_COUNTS, ['cardCounts' => $this->undoCardCounts]);
+        }
     }
 }
 

@@ -28,6 +28,7 @@ const CARD_LOCATION_GAIA_DECK = 9;
 const CARD_LOCATION_GAIA_TABLEAU = 10;
 const CARD_LOCATION_GAIA_COMPOST = 11;
 const CARD_LOCATION_GAIA_DISCARD = 12;
+const CARD_LOCATION_END_TURN = 13;
 
 const MAX_TABLEAU_SIZE = 4;
 
@@ -220,6 +221,11 @@ class Card extends \BX\Action\BaseActionRow
         return ($this->locationId == CARD_LOCATION_GAIA_DISCARD);
     }
 
+    public function isPlayedEndTurnEvent()
+    {
+        return ($this->locationId == CARD_LOCATION_END_TURN);
+    }
+
     public function visibleForPlayer(?int $playerId)
     {
         if ($this->playerId == $playerId) {
@@ -234,6 +240,7 @@ class Card extends \BX\Action\BaseActionRow
                 case CARD_LOCATION_FAUNA_BOARD_FAUNA:
                 case CARD_LOCATION_FAUNA_BOARD_ECOSYSTEM:
                 case CARD_LOCATION_PLAYER_BOARD:
+                case CARD_LOCATION_END_TURN:
                     return true;
                 default:
                     throw new \BgaSystemException("BUG! Unknow card location: {$this->locationId}");
@@ -257,6 +264,7 @@ class Card extends \BX\Action\BaseActionRow
             case CARD_LOCATION_PLAYER_BOARD:
             case CARD_LOCATION_GAIA_TABLEAU:
             case CARD_LOCATION_GAIA_DISCARD:
+            case CARD_LOCATION_END_TURN:
                 return true;
             default:
                 throw new \BgaSystemException("BUG! Unknow card location: {$this->locationId}");
@@ -462,6 +470,22 @@ class Card extends \BX\Action\BaseActionRow
         $this->growthCount = 0;
     }
 
+    public function moveToEndTurn()
+    {
+        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $playerIds = $gameStateMgr->playerIdsInActiveOrder();
+        $this->locationId = CARD_LOCATION_END_TURN;
+        $this->locationOrder = array_search($this->playerId, $playerIds);
+        $this->locationX = null;
+        $this->locationY = null;
+        $this->handChoosing = false;
+        $this->privateVisibility = false;
+        $this->sproutCount = 0;
+        $this->growthCount = 0;
+        $cardTagMgr = \BX\Action\ActionRowMgrRegister::getMgr('card_tag');
+        $cardTagMgr->deleteCardTag($this->cardId);
+    }
+
     public function addSprout(int $nbSprout)
     {
         if ($nbSprout < 0) {
@@ -567,7 +591,6 @@ class CardCountsUI extends \BX\UI\UISerializable
             $this->compostCountByPlayerId[$playerId] = 0;
         }
         $this->gaiaDeckCount = 0;
-        $this->gaiaDiscardCount = 0;
     }
 
     public function toUIEverything()
@@ -621,6 +644,7 @@ class CardCountsUI extends \BX\UI\UISerializable
             case CARD_LOCATION_GAIA_TABLEAU:
             case CARD_LOCATION_GAIA_COMPOST:
             case CARD_LOCATION_GAIA_DISCARD:
+            case CARD_LOCATION_END_TURN:
                 break;
             default:
                 throw new \BgaSystemException("BUG! Unknow card location: {$card->locationId}");
@@ -919,12 +943,31 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return ($max + 1);
     }
 
-    public function getPlayerEventHandCards($playerId)
+    public function getPlayerAnytimeEventHandCards($playerId)
     {
         $cards = array_filter(
             $this->getPlayerHandCards($playerId),
-            fn ($c) => $c->getCardDef()->isEvent()
+            fn ($c) => $c->getCardDef()->isAnytimeEvent()
         );
+        return $cards;
+    }
+
+    public function getPlayerEndTurnEventHandCards($playerId)
+    {
+        $cards = array_filter(
+            $this->getPlayerHandCards($playerId),
+            fn ($c) => $c->getCardDef()->isEndTurnEvent()
+        );
+        return $cards;
+    }
+
+    public function getPlayedEndTurnEvenCardsInOrder()
+    {
+        $cards = array_filter(
+            $this->getAll(),
+            fn ($c) => $c->isPlayedEndTurnEvent()
+        );
+        usort($cards, fn ($c1, $c2) => $c1->locationOrder - $c2->locationOrder);
         return $cards;
     }
 
@@ -947,9 +990,14 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return $ret;
     }
 
-    public function playerHasEventInHand(int $playerId)
+    public function playerHasAnytimeEventInHand(int $playerId)
     {
-        return count($this->getPlayerEventHandCards($playerId)) > 0;
+        return count($this->getPlayerAnytimeEventHandCards($playerId)) > 0;
+    }
+
+    public function playerHasEndTurnEventInHand(int $playerId)
+    {
+        return count($this->getPlayerEndTurnEventHandCards($playerId)) > 0;
     }
 
     public function getPlayerCompostCards(int $playerId)
@@ -1059,6 +1107,24 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return null;
     }
 
+    public function getPlayerNbPlantActionKeepCard(int $playerId)
+    {
+        $island = $this->getPlayerIslandCard($playerId);
+        if ($island !== null) {
+            $abilityBrown = $island->getCardDef()->abilityBrown();
+            if ($abilityBrown !== null) {
+                $nbCard = 1;
+                $abilityBrown->foreachGain(function ($abilityId, $count) use (&$nbCard) {
+                    if ($abilityId == \EA\ABILITY_KEEP_CARDS_WHEN_PLANTING) {
+                        $nbCard = $count;
+                    }
+                });
+                return $nbCard;
+            }
+        }
+        return 1;
+    }
+
     public function getTopCardFromDeck()
     {
         $getTopCard = function () {
@@ -1095,6 +1161,58 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
             $card->moveToDeck($i);
         }
         return $getTopCard();
+    }
+
+    public function findFirstDeckDiscardCardMatchingFilterNow(callable $germinateFilter)
+    {
+        // Seach in deck first
+        $topCard = null;
+        foreach ($this->getAll() as $card) {
+            if (!$card->isInDeck()) {
+                continue;
+            }
+            if (!$germinateFilter($card->getCardDef())) {
+                continue;
+            }
+            if ($topCard === null || $card->locationOrder < $topCard->locationOrder) {
+                $topCard = $card;
+            }
+        }
+        if ($topCard !== null) {
+            return $topCard;
+        }
+
+        // Not found in deck, search in shuffled discard
+        $discardCards = [];
+        foreach ($this->getAll() as $card) {
+            if (!$card->isInDiscard()) {
+                continue;
+            }
+            $discardCards[] = $card;
+        }
+        shuffle($discardCards);
+        foreach ($discardCards as $card) {
+            if ($germinateFilter($card->getCardDef())) {
+                $topCard = $card;
+                break;
+            }
+        }
+
+        // Shuffle the deck and the discard
+        $deckAndDiscardCards = [];
+        foreach ($this->getAll() as $card) {
+            if (!$card->isInDeck() && !$card->isInDiscard()) {
+                continue;
+            }
+            $deckAndDiscardCards[] = $card;
+        }
+        shuffle($deckAndDiscardCards);
+        foreach ($deckAndDiscardCards as $i => $card) {
+            $card->moveToDeck($i);
+            $this->db->updateRow($card);
+        }
+
+        return $topCard;
     }
 
     public function getTopCardFromPlayerCompost(int $playerId)
@@ -1320,6 +1438,34 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
         return $count;
     }
 
+    public function getPlayerUnusedSproutSpaceCount(int $playerId)
+    {
+        $tableauCards = $this->getPlayerTableauCards($playerId, $playerId);
+        $count = 0;
+        foreach ($tableauCards as $card) {
+            $max = $card->getCardDef()->sproutMax;
+            if ($max === null) {
+                continue;
+            }
+            $count += ($max - $card->sproutCount);
+        }
+        return $count;
+    }
+
+    public function getPlayerTotalSproutSpaceCount(int $playerId)
+    {
+        $tableauCards = $this->getPlayerTableauCards($playerId, $playerId);
+        $count = 0;
+        foreach ($tableauCards as $card) {
+            $max = $card->getCardDef()->sproutMax;
+            if ($max === null) {
+                continue;
+            }
+            $count += $max;
+        }
+        return $count;
+    }
+
     public function getPlayerGrowthCount(int $playerId)
     {
         $tableauCards = $this->getPlayerTableauCards($playerId, $playerId);
@@ -1353,8 +1499,14 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
     public function getPlayerIslandClimateTableauCards(int $playerId, bool $considerPrivateVisibility = true)
     {
         $cards = $this->getPlayerTableauCards($playerId, $considerPrivateVisibility ? $playerId : null);
-        $cards[] = $this->getPlayerIslandCard($playerId);
-        $cards[] = $this->getPlayerClimateCard($playerId);
+        $island = $this->getPlayerIslandCard($playerId);
+        if ($island !== null && ($considerPrivateVisibility || !$island->isPrivateVisible())) {
+            $cards[] = $island;
+        }
+        $climate =  $this->getPlayerClimateCard($playerId);
+        if ($climate !== null && ($considerPrivateVisibility || !$climate->isPrivateVisible())) {
+            $cards[] = $climate;
+        }
         return $cards;
     }
 
@@ -1494,7 +1646,7 @@ class CardMgr extends \BX\Action\BaseActionRowMgr
             }
             $orthoAdjacentForCard[$card->cardId] = array_filter(
                 $this->getPlayerTableauCardsInCardOrthoAdjacent($playerId, $card->cardId),
-                fn($c) => $isMatch($c)
+                fn ($c) => $isMatch($c)
             );
         }
         foreach ($this->getPlayerTableauCards($playerId, $playerId) as $card) {

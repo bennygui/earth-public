@@ -31,7 +31,7 @@ trait GameStatesTrait
         $this->updateSeenFaunaObjective($playerId);
 
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
-        if (!$cardMgr->playerHasEventInHand($playerId)) {
+        if (!$cardMgr->playerHasAnytimeEventInHand($playerId)) {
             throw new \BgaUserException($this->_('You do not have any event card to play'));
         }
 
@@ -45,7 +45,7 @@ trait GameStatesTrait
     {
         return \BX\MultiActiveState\argsMultiActive($playerId, function ($playerId) {
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
-            $ret['eventCardIds'] = array_keys($cardMgr->getPlayerEventHandCards($playerId));
+            $ret['eventCardIds'] = array_keys($cardMgr->getPlayerAnytimeEventHandCards($playerId));
             // Disable playing events
             $ret['canPlayEvent'] = false;
             return $this->argsMergeEarthDefault($playerId, $ret);
@@ -60,43 +60,27 @@ trait GameStatesTrait
         \BX\Action\ActionCommandMgr::apply($playerId);
         $this->updateSeenFaunaObjective($playerId);
 
-        $cardDef = \EA\CardDefMgr::getByCardId($cardId);
-        if ($cardDef === null) {
-            throw new \BgaSystemException("BUG! No card def for cardId $cardId");
-        }
-
-        $ability = $cardDef->abilityBlack();
-        $this->validateAbilityPayment($playerId, $ability);
-        if ($ability->hasUserPlacementPayment()) {
-            $creator = new \BX\Action\ActionCommandCreator($playerId);
-            $creator->add(new \EA\Actions\Event\PlayEventCard($playerId, $cardId));
-            $creator->add(new \EA\Actions\Activation\ForceCardActivation($playerId, $cardId));
-            $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectPayment'));
-            $creator->save();
-        } else if ($ability->hasUserPlacementGain()) {
-            $creator = \BX\Action\buildActionCommandCreator($playerId, $ability->mustGainCommit() || $ability->mustPaymentCommit() || $this->eventWillDrawCard($playerId));
-            $creator->add(new \EA\Actions\Event\PlayEventCard($playerId, $cardId));
-            $creator->add(new \EA\Actions\Activation\ForceCardActivation($playerId, $cardId));
-            $this->addInstantPayment($cardId, $creator, $ability);
-            $this->addPlacementGain($cardId, $creator, $ability, null);
-            $this->addInstantGain($cardId, $creator, $ability);
-            $this->addInstantEventGain($creator);
-            $this->addCommonActions($creator);
-            $this->addCommonActions($creator, true);
-            $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectGain'));
-            $creator->saveOrCommit();
-        } else {
-            $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
-            $creator = \BX\Action\buildActionCommandCreator($playerId, $ability->mustGainCommit() || $ability->mustPaymentCommit() || $this->eventWillDrawCard($playerId));
-            $creator->add(new \EA\Actions\Event\PlayEventCard($playerId, $cardId));
-            $this->addInstantPayment($cardId, $creator, $ability);
-            $this->addInstantGain($cardId, $creator, $ability);
-            $this->addInstantEventGain($creator);
-            $this->addCommonActions($creator);
-            $this->addCommonActions($creator, true);
-            $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromEventStateId($playerId)));
-            $creator->saveOrCommit();
-        }
+        $this->commonPlayEvent(
+            $playerId,
+            $cardId,
+            fn ($creator) => $creator->add(new \EA\Actions\Event\PlayEventCard($playerId, $cardId)),
+            function ($creator, $event) use ($playerId) {
+                switch ($event) {
+                    case EVENT_COMMON_PAYMENT:
+                        $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectPayment'));
+                        break;
+                    case EVENT_COMMON_GAIN:
+                        $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'eventSelectGain'));
+                        break;
+                    case EVENT_COMMON_INSTANT:
+                        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+                        $creator->add(new \BX\MultiActiveState\JumpPrivateStateActionCommand($playerId, $playerStateMgr->getPlayerReturnFromEventStateId($playerId)));
+                        break;
+                    default:
+                        throw new \BgaSystemException("BUG! Invalid event $event");
+                }
+            }
+        );
     }
 
     public function eventGain(array $placedSproutList, array $placedGrowthList, array $selectedCompostFromHandCardIds, array $selectedHandChoosingCardIds)
@@ -213,5 +197,45 @@ trait GameStatesTrait
                 }
             });
         });
+    }
+
+    private function commonPlayEvent(int $playerId, int $cardId, callable $playFct, callable $nextStateFct)
+    {
+        $cardDef = \EA\CardDefMgr::getByCardId($cardId);
+        if ($cardDef === null) {
+            throw new \BgaSystemException("BUG! No card def for cardId $cardId");
+        }
+
+        $ability = $cardDef->abilityBlack();
+        $this->validateAbilityPayment($playerId, $ability);
+        if ($ability->hasUserPlacementPayment()) {
+            $creator = new \BX\Action\ActionCommandCreator($playerId);
+            $playFct($creator);
+            $creator->add(new \EA\Actions\Activation\ForceCardActivation($playerId, $cardId));
+            $nextStateFct($creator, EVENT_COMMON_PAYMENT);
+            $creator->save();
+        } else if ($ability->hasUserPlacementGain()) {
+            $creator = \BX\Action\buildActionCommandCreator($playerId, $ability->mustGainCommit() || $ability->mustPaymentCommit() || $this->eventWillDrawCard($playerId));
+            $playFct($creator);
+            $creator->add(new \EA\Actions\Activation\ForceCardActivation($playerId, $cardId));
+            $this->addInstantPayment($cardId, $creator, $ability);
+            $this->addPlacementGain($cardId, $creator, $ability, null);
+            $this->addInstantGain($cardId, $creator, $ability);
+            $this->addInstantEventGain($creator);
+            $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
+            $nextStateFct($creator, EVENT_COMMON_GAIN);
+            $creator->saveOrCommit();
+        } else {
+            $creator = \BX\Action\buildActionCommandCreator($playerId, $ability->mustGainCommit() || $ability->mustPaymentCommit() || $this->eventWillDrawCard($playerId));
+            $playFct($creator);
+            $this->addInstantPayment($cardId, $creator, $ability);
+            $this->addInstantGain($cardId, $creator, $ability);
+            $this->addInstantEventGain($creator);
+            $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
+            $nextStateFct($creator, EVENT_COMMON_INSTANT);
+            $creator->saveOrCommit();
+        }
     }
 }

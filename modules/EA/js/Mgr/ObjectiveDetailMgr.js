@@ -136,7 +136,7 @@ define([
                 const cards = [];
                 const leafs = [];
                 cards.push(document.querySelector('#ea-area-player-' + this.playerId + ' .ea-player-board-card-2 .ea-card'));
-                leafs.push([]);
+                leafs.push(gameui.scoreMgr.getPlayerEcosystemProgressAndScore(this.playerId));
                 for (let x = 0; x <= 1; ++x) {
                     for (let y = 0; y <= 1; ++y) {
                         cards.push(document.querySelector('#ea-fauna-board-fauna-card-' + x + '-' + y + ' .ea-card'));
@@ -149,9 +149,9 @@ define([
                     }
                 }
                 cards.push(document.querySelector('#ea-fauna-board-ecosystem-card-0 .ea-card'));
-                leafs.push([]);
+                leafs.push(gameui.scoreMgr.getPublicEcosystem1ProgressAndScore(this.playerId));
                 cards.push(document.querySelector('#ea-fauna-board-ecosystem-card-1 .ea-card'));
-                leafs.push([]);
+                leafs.push(gameui.scoreMgr.getPublicEcosystem2ProgressAndScore(this.playerId));
 
                 const playerElem = document.querySelector('#popin_' + this.DIALOG_ID + ' .ea-dialog-objective-detail-player-name')
                 const playerNameElem = gameui.createPlayerColorNameElement(this.playerId);
@@ -164,11 +164,13 @@ define([
                         const leafContainerElem = document.createElement('div');
                         leafContainerElem.classList.add('ea-objective-detail-leaf-container');
                         leafContainerElem.style.setProperty('--ea-zoom', zoom / 2);
-                        for (const leafElem of leafs[i]) {
-                            if (leafElem !== null) {
-                                const newLeafElem = document.createElement('div');
-                                newLeafElem.classList = leafElem.classList;
-                                leafContainerElem.appendChild(newLeafElem);
+                        if (leafs[i] instanceof Array) {
+                            for (const leafElem of leafs[i]) {
+                                if (leafElem !== null) {
+                                    const newLeafElem = document.createElement('div');
+                                    newLeafElem.classList = leafElem.classList;
+                                    leafContainerElem.appendChild(newLeafElem);
+                                }
                             }
                         }
                         gridElem.appendChild(leafContainerElem);
@@ -180,7 +182,7 @@ define([
                         }
                         gridElem.appendChild(cardBottomElem);
                         if (this.playerId in gameui.faunaProgress && cardId in gameui.faunaProgress[this.playerId]) {
-                            const progress = gameui.faunaProgress[this.playerId][cardId];
+                            const progress = this.parseFaunaProgress(gameui.faunaProgress[this.playerId][cardId]);
                             const progressElem = gameui.createPlayerColorElement(this.playerId);
                             if (progress.hasRequirements) {
                                 progressElem.appendChild(gameui.createFAIcon('check'));
@@ -192,6 +194,17 @@ define([
                             progressContainerElem.appendChild(progressElem);
                             gridElem.appendChild(progressContainerElem);
                             gameui.addBasicTooltipToElement(progressElem, _('Current progress towards the Fauna objective'));
+                        }
+                        if (!(leafs[i] instanceof Array)) {
+                            const progressElem = gameui.createPlayerColorElement(this.playerId);
+                            progressElem.innerHTML = leafs[i];
+                            const progressContainerElem = document.createElement('div');
+                            progressContainerElem.classList.add('ea-objective-detail-progress');
+                            progressContainerElem.appendChild(progressElem);
+                            gridElem.appendChild(progressContainerElem);
+                            if (gameui.scoreMgr.hasScores()) {
+                                gameui.addBasicTooltipToElement(progressElem, _('Current progress and score for that Ecosystem. Only updated at the end of the turn.'));
+                            }
                         }
                     }
                 }
@@ -246,6 +259,18 @@ define([
                     return null;
                 }
                 return gameui.gamedatas.playerorder[i];
+            },
+
+            parseFaunaProgress(faunaProgress) {
+                if (typeof faunaProgress != 'string') {
+                    return faunaProgress;
+                }
+                const split = faunaProgress.split('|');
+                return {
+                    progress: parseInt(split[0]),
+                    objective: parseInt(split[1]),
+                    hasRequirements: gameui.isTrue(split[2]),
+                };
             },
         });
     });

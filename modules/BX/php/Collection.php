@@ -22,3 +22,23 @@ function rotateValueToFront(array $array, $value)
     $back = array_slice($array, $index);
     return array_values(array_merge($back, $front));
 }
+
+function arrayEvery(array $array, callable $func)
+{
+    foreach ($array as $e) {
+        if (!$func($e)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function arrayAny(array $array, callable $func)
+{
+    foreach ($array as $e) {
+        if ($func($e)) {
+            return true;
+        }
+    }
+    return false;
+}

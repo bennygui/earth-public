@@ -81,24 +81,24 @@ $card-image-max-nb-row: 5;
         position: absolute;
         width: 100%;
         height: calc(55px * #{$static-scale} * var(--ea-zoom));
-        top: calc(410px * #{$static-scale} * var(--ea-zoom));
+        top: calc(415px * #{$static-scale} * var(--ea-zoom));
         left: 0px;
         right: 0px;
         margin-left: auto;
         margin-right: auto;
         display: flex;
         flex-flow: row;
-        border: 4px solid transparent;
+        outline: 4px solid transparent;
         border-radius: calc(15px * 0.75 * var(--ea-zoom));
 
         @media (max-width: 480px) {
-            border: 4px solid transparent;
+            outline: 4px solid transparent;
         }
     }
 
     &.ea-card-compact-bottom {
         .ea-card-sprout-container {
-            top: 0px;
+            top: 5px;
         }
     }
 
@@ -135,7 +135,7 @@ $card-image-max-nb-row: 5;
     .ea-card-growth-container {
         position: absolute;
         width: calc(75px * #{$static-scale} * var(--ea-zoom));
-        height: calc(60px * #{$static-scale} * var(--ea-zoom));
+        height: calc(45px * #{$static-scale} * var(--ea-zoom));
         top: calc(153px * #{$static-scale} * var(--ea-zoom));
         right: calc(15px * #{$static-scale} * var(--ea-zoom));
         border: 4px solid transparent;
@@ -294,3 +294,10 @@ $card-image-max-nb-row: 5;
 @include mixin-ea-cards-one-side('gaia', 80000, 360, 365);
 @include mixin-ea-card('back', 1, 0, 0, 99999, 2);
 @include mixin-ea-card('back', 1, 1, 0, 99998, 2);
+
+// Abundance
+@include mixin-ea-cards-one-side('abundance-earth', 10000, 284, 353);
+@include mixin-ea-cards-two-sides('abundance-island', 40000, 295, 296);
+@include mixin-ea-cards-two-sides('abundance-climate', 50000, 305, 306);
+@include mixin-ea-cards-two-sides('abundance-ecosystem', 60000, 337, 339);
+@include mixin-ea-cards-two-sides('abundance-fauna', 70000, 360, 362);

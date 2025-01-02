@@ -23,6 +23,8 @@ require_once('UI.php');
 // @dbautoincrement: This column is autoincrement so read the value from the database when inserting
 // @dboptional: This column could not be in the table, must check if it exists before accessing.
 
+const MAX_JSON_SIZE = 65535;
+
 class RowMgrRegister
 {
     private static $classId;
@@ -131,9 +133,11 @@ class RowMgr
     protected $db;
     protected $tableName;
     protected $baseRowClassName;
+    private $tableIsOptional;
     private $selectRowsCache;
     private $useCache;
     private $missingOptionalColumns;
+    private $onChangingCallbacks;
 
     public function __construct(string $tableName, string $baseRowClassName)
     {
@@ -154,15 +158,35 @@ class RowMgr
         };
         $this->tableName = $tableName;
         $this->baseRowClassName = $baseRowClassName;
+        $this->tableIsOptional = false;
         $this->selectRowsCache = [];
         $this->useCache = true;
         $this->missingOptionalColumns = null;
+        $this->onChangingCallbacks = [fn () => $this->clearCache()];
     }
 
     public function setUseCache(bool $useCache = true)
     {
         $this->useCache = $useCache;
         $this->clearCache();
+    }
+
+    public function setTableIsOptional(bool $isOptional = true)
+    {
+        $this->tableIsOptional = $isOptional;
+        $this->clearCache();
+    }
+
+    public function registerOnChanging(callable $callback)
+    {
+        $this->onChangingCallbacks[] = $callback;
+    }
+
+    private function onChanging()
+    {
+        foreach ($this->onChangingCallbacks as $f) {
+            $f();
+        }
     }
 
     public function newRow(?string $rowClassName = null)
@@ -176,7 +200,10 @@ class RowMgr
 
     public function insertRow(BaseRow $row)
     {
-        $this->clearCache();
+        $this->onChanging();
+        if ($this->skipOptionalTable()) {
+            return;
+        }
         $columns = $this->getColumns();
         $colClassId = $this->getColumnClassId();
         if ($colClassId !== null) {
@@ -214,7 +241,10 @@ class RowMgr
     public function updateRow(BaseRow $row)
     {
         $this->onBeforeUpdateRow($row);
-        $this->clearCache();
+        $this->onChanging();
+        if ($this->skipOptionalTable()) {
+            return;
+        }
         $dbValues = implode(', ', array_map(function ($c) use ($row) {
             $p = $c->property();
             return $c->column() . " = " . self::sqlNullOrValue($row->$p);
@@ -231,7 +261,10 @@ class RowMgr
 
     public function deleteRow(BaseRow $row)
     {
-        $this->clearCache();
+        $this->onChanging();
+        if ($this->skipOptionalTable()) {
+            return;
+        }
         $dbKeys = implode(' AND ', array_map(function ($c) use ($row) {
             $p = $c->property();
             return $c->column() . " = " . self::sqlNullOrValue($row->$p);
@@ -241,15 +274,34 @@ class RowMgr
         $this->executeQuery($sql);
     }
 
+    public function deleteRowsWhereEqual(string $column, $value)
+    {
+        $this->onChanging();
+        if ($this->skipOptionalTable()) {
+            return;
+        }
+
+        $where = $column . " = " . self::sqlNullOrValue($value);
+
+        $sql = "DELETE FROM {$this->tableName} WHERE $where";
+        $this->executeQuery($sql);
+    }
+
     public function deleteAllRows()
     {
-        $this->clearCache();
+        $this->onChanging();
+        if ($this->skipOptionalTable()) {
+            return;
+        }
         $sql = "DELETE FROM {$this->tableName}";
         $this->executeQuery($sql);
     }
 
     public function getAllRows(string $order = null)
     {
+        if ($this->skipOptionalTable()) {
+            return [];
+        }
         $allRows = [];
         $columns = $this->getColumns();
 
@@ -271,6 +323,9 @@ class RowMgr
 
     public function getAllRowsByKey()
     {
+        if ($this->skipOptionalTable()) {
+            return [];
+        }
         $columnKeys = $this->getColumnKeys();
         if (count($columnKeys) != 1) {
             throw new \BgaSystemException("BUG! getAllRowsByKey requires exactly 1 key column");
@@ -284,6 +339,9 @@ class RowMgr
 
     public function getRowByKey($key)
     {
+        if ($this->skipOptionalTable()) {
+            return null;
+        }
         $columnKeys = $this->getColumnKeys();
         if (count($columnKeys) != 1) {
             throw new \BgaSystemException("BUG! getRowByKey requires exactly 1 key column");
@@ -309,6 +367,23 @@ class RowMgr
     public function clearCache()
     {
         $this->selectRowsCache = [];
+    }
+
+    protected function skipOptionalTable()
+    {
+        if ($this->tableIsOptional) {
+            return (!$this->tableExists());
+        }
+        return false;
+    }
+
+    protected function tableExists()
+    {
+        $sql = "SHOW TABLES LIKE '{$this->tableName}'";
+        foreach ($this->executeSelect($sql) as $row) {
+            return true;
+        }
+        return false;
     }
 
     protected function getColumns()
@@ -404,6 +479,9 @@ class RowMgr
 
     public function executeQuery(string $sql)
     {
+        if ($this->skipOptionalTable()) {
+            return;
+        }
         $this->db->executeQuery($sql);
     }
 
@@ -421,6 +499,9 @@ class RowMgr
 
     public function executeGetLastId()
     {
+        if ($this->skipOptionalTable()) {
+            return 0;
+        }
         return $this->db->executeGetLastId();
     }
 
@@ -452,4 +533,18 @@ class RowMgr
             return "$value";
         }
     }
+}
+
+function convertFromValueToJsonForColumn($value)
+{
+    $json = json_encode(\BX\Meta\extractAllPropertyValues($value));
+    if (strlen($json) > MAX_JSON_SIZE) {
+        throw new \BgaSystemException('BUG! convertToJsonForColumnis too long: ' . strlen($json));
+    }
+    return $json;
+}
+
+function convertFromJsonToValueForColumn($json)
+{
+    return \BX\Meta\rebuildAllPropertyValues(json_decode($json, true));
 }

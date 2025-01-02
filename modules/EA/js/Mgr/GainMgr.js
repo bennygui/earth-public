@@ -118,6 +118,14 @@ define([
                 return (this.gainConfig.selectedHandChoosingCardIds.length == 1);
             },
 
+            hasSproutGainNoDirection() {
+                return (this.gainConfig.gainedSprout > 0 && this.gainConfig.gainedCardIdList === null);
+            },
+
+            hasMaxedSproutGain() {
+                return (this.gainConfig.placedSprout == this.gainConfig.gainedSprout);
+            },
+
             hasPlacedNoGain() {
                 if (this.gainConfig === null) {
                     return false;
@@ -141,11 +149,73 @@ define([
                     return true;
                 }
                 return (
-                    this.gainConfig.placedSprout == this.gainConfig.gainedSprout
-                    && this.gainConfig.placedGrowth == this.gainConfig.gainedGrowth
-                    && this.gainConfig.selectedCompostFromHandCardIds.length == this.gainConfig.gainedCompostFromHand
+                    (this.gainConfig.placedSprout == this.gainConfig.gainedSprout || !this.couldGainMoreSprouts())
+                    && (this.gainConfig.placedGrowth == this.gainConfig.gainedGrowth || !this.couldGainMoreGrowth())
+                    && (this.gainConfig.selectedCompostFromHandCardIds.length == this.gainConfig.gainedCompostFromHand || !this.couldGainMoreCompostFromHand())
                     && (this.gainConfig.handChoosingCardIds.length == 0 || this.gainConfig.selectedHandChoosingCardIds.length == 1)
                 );
+            },
+
+            couldGainMoreSprouts() {
+                if (this.gainConfig === null) {
+                    return false;
+                }
+                if (this.gainConfig.gainedSprout - this.gainConfig.placedSprout > 0) {
+                    for (const card of this.gainConfig.sproutCards) {
+                        if (card.count + card.placed >= card.max) {
+                            continue;
+                        }
+                        if (this.gainConfig.gainedCardIdList !== null) {
+                            if (this.gainConfig.gainedCardIdList.indexOf(card.cardId) < 0) {
+                                continue;
+                            }
+                            if (this.gainConfig.isGainedCardIdListDivided) {
+                                const maxGainedPerCard = Math.floor(this.gainConfig.gainedSprout / this.gainConfig.gainedCardIdList.length);
+                                if (card.placed >= maxGainedPerCard) {
+                                    continue;
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            },
+
+            couldGainMoreGrowth() {
+                if (this.gainConfig === null) {
+                    return false;
+                }
+                if (this.gainConfig.gainedGrowth - this.gainConfig.placedGrowth > 0) {
+                    for (const card of this.gainConfig.growthCards) {
+                        if (card.count + card.placed >= card.max) {
+                            continue;
+                        }
+                        if (this.gainConfig.gainedCardIdList !== null) {
+                            if (this.gainConfig.gainedCardIdList.indexOf(card.cardId) < 0) {
+                                continue;
+                            }
+                            if (this.gainConfig.isGainedCardIdListDivided) {
+                                const maxGainedPerCard = Math.floor(this.gainConfig.gainedGrowth / this.gainConfig.gainedCardIdList.length);
+                                if (card.placed >= maxGainedPerCard) {
+                                    continue;
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            },
+
+            couldGainMoreCompostFromHand() {
+                if (this.gainConfig === null) {
+                    return false;
+                }
+                if (this.gainConfig.selectedCompostFromHandCardIds.length < gameui.handMgr.getCardHandCardIds().length) {
+                    return true;
+                }
+                return false;
             },
 
             setupGain(options) {

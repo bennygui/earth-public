@@ -107,7 +107,7 @@ trait CardDefMgrFauna
                 ->build(),
             (new CardDefBuilder())->faunaId(346, 2)->name(clienttranslate("Spotted Hyena"), "Crocuta crocuta")
                 ->ability((new AbilityBuilder())->scores([AB_FAUNA_CARDS_WITH_ABILITY_COLOR, 3, AB_COLOR_BLACK])
-                    ->desc(clienttranslate('3 cards or more with Black abilities (including Island)'))->build())
+                    ->desc(clienttranslate('3 cards or more with Black abilities (including Island and Climate)'))->build())
                 ->build(),
             // 347
             (new CardDefBuilder())->faunaId(347, 1)->name(clienttranslate("Northern Giraffe"), "Giraffa camelopardalis")
@@ -154,7 +154,7 @@ trait CardDefMgrFauna
                 ->build(),
             (new CardDefBuilder())->faunaId(351, 2)->name(clienttranslate("Western Honeybee"), "Apis mellifera")
                 ->ability((new AbilityBuilder())->scores([AB_FAUNA_CARDS_WITH_LESS_COST, 9, 3])
-                    ->desc(clienttranslate('9 or more cards, each with a soil cost or 3 or less'))->build())
+                    ->desc(clienttranslate('9 or more cards, each with a soil cost of 3 or less'))->build())
                 ->build(),
             // 352
             (new CardDefBuilder())->faunaId(352, 1)->name(clienttranslate("Fire Salamander"), "Salamandra salamandra")

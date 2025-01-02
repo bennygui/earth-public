@@ -22,6 +22,10 @@ define([
                     const faunaBoard = document.getElementById('ea-fauna-board');
                     faunaBoard.classList.add('ea-fauna-board-beginner');
                 }
+                if (gameui.isFalse(gamedatas.gameHasExpansionAbundance)) {
+                    const e = document.getElementById('ea-fauna-board-fauna-abundance-tableau-bonus');
+                    e.classList.add('bx-hidden');
+                }
                 for (const cardId in gamedatas.cards) {
                     const card = gamedatas.cards[cardId];
                     if (card.locationId == gameui.CARD_LOCATION_FAUNA_BOARD_FAUNA) {

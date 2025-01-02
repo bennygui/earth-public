@@ -63,7 +63,13 @@ trait GameStatesTrait
         $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
         $activePlayerId = $gameStateMgr->activePlayerId();
 
-        if ($playerId == $activePlayerId) {
+        if ($this->gamestate->state_id() == STATE_ACTION_PLANT_ADDITIONAL_ID) {
+            $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
+            $creator->add(new \EA\Actions\MainAction\SkipPlantingCard($playerId));
+            $this->addCommonActions($creator);
+            $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+            $creator->commit();
+        } else if ($playerId == $activePlayerId) {
             $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
             $creator->add(new \EA\Actions\MainAction\SkipPlantingCard($playerId));
             $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($playerId, ACTIVE_PLAYER_DRAW_CARDS, true));
@@ -120,6 +126,9 @@ trait GameStatesTrait
             throw new \BgaSystemException("BUG! No card def for cardId $cardId");
         }
         $abilityBlack = $cardDef->abilityBlack();
+        if ($abilityBlack !== null && $abilityBlack->hasConditionPerNeighbour()) {
+            $abilityBlack = null;
+        }
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         $card = $cardMgr->getCardById($cardId);
 
@@ -217,7 +226,19 @@ trait GameStatesTrait
             }
         };
 
-        if ($playerId == $activePlayerId) {
+        if ($this->gamestate->state_id() == STATE_ACTION_PLANT_ADDITIONAL_ID) {
+            $mustSelectGain = ($abilityBlack !== null && $abilityBlack->hasUserPlacementGain());
+            $creator = \BX\Action\buildActionCommandCreator($playerId, !$mustSelectGain || ($abilityBlack !== null && $abilityBlack->mustGainCommit()));
+            $doPlant($creator);
+            $this->addCommonActions($creator);
+            $this->addCommonActions($creator, true);
+            if ($mustSelectGain) {
+                $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'activateSelectGain'));
+            } else {
+                $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+            }
+            $creator->saveOrCommit();
+        } else if ($playerId == $activePlayerId) {
             if ($isFirstCard) {
                 $creator = \BX\Action\buildActionCommandCreator($playerId, $willOverrideCard || ($abilityBlack !== null && $abilityBlack->mustGainCommit()));
                 $doPlant($creator);
@@ -323,12 +344,13 @@ trait GameStatesTrait
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
             $ret = [
                 'handCardIds' => array_keys($cardMgr->getPlayerHandChoosingCards($playerId)),
+                'nbCards' => $cardMgr->getPlayerNbPlantActionKeepCard($playerId),
             ];
             return $this->argsMergeEarthBasic($ret);
         });
     }
 
-    public function planActionKeepOneDrawnCard(int $cardId)
+    public function planActionKeepOneDrawnCard(array $cardIds)
     {
         \BX\Lock\Locker::lock();
         $this->checkAction('planActionKeepOneDrawnCard');
@@ -337,7 +359,7 @@ trait GameStatesTrait
         $this->updateSeenFaunaObjective($playerId);
 
         $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
-        $creator->add(new \EA\Actions\MainAction\PlantKeepCard($playerId, $cardId));
+        $creator->add(new \EA\Actions\MainAction\PlantKeepCard($playerId, $cardIds));
         $this->addCommonActions($creator);
         $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
         $creator->commit();
@@ -360,12 +382,20 @@ trait GameStatesTrait
 
         $privateTableauCardsCount = count($cardMgr->getPlayerPrivateTableauCards($playerId));
         $mustCommit = $ability->mustGainCommit();
-        if ($playerId == $activePlayerId) {
-            if ($privateTableauCardsCount != 1) {
-                $mustCommit = true;
-            }
-        } else {
-            $mustCommit = true;
+        $outsideMainPlantAction = false;
+        switch ($this->gamestate->state_id()) {
+            case STATE_ACTION_PLANT_ADDITIONAL_ID:
+            case STATE_ACTION_PLANT_SPECIAL_GAIN_ID:
+                $outsideMainPlantAction = true;
+                break;
+            default:
+                if ($playerId == $activePlayerId) {
+                    if ($privateTableauCardsCount != 1) {
+                        $mustCommit = true;
+                    }
+                } else {
+                    $mustCommit = true;
+                }
         }
 
         $creator = \BX\Action\buildActionCommandCreator($playerId, $mustCommit);
@@ -373,7 +403,10 @@ trait GameStatesTrait
         $creator->add(new \EA\Actions\Ability\PlaceGrowth($playerId, $placedGrowthList));
         $creator->add(new \EA\Actions\Ability\PlaceCompostFromHand($playerId, $selectedCompostFromHandCardIds));
         $creator->add(new \EA\Actions\Activation\ClearCardActivation($playerId));
-        if ($playerId == $activePlayerId) {
+        if ($outsideMainPlantAction) {
+            $this->addCommonActions($creator);
+            $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        } else if ($playerId == $activePlayerId) {
             if ($privateTableauCardsCount == 1) {
                 $this->addCommonActions($creator);
                 $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'plantSecondCard'));
@@ -392,5 +425,122 @@ trait GameStatesTrait
             $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
         }
         $creator->saveOrCommit();
+    }
+
+    public function stActionPlantPreAdditional()
+    {
+        $this->revealTableauAndFauna();
+
+        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+
+        $plantMoreCard = false;
+        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
+        foreach ($playerIdArray as $playerId) {
+            foreach ($playerStateMgr->playerPlantedCardIds($playerId) as $cardId) {
+                $cardDef = \EA\CardDefMgr::getByCardId($cardId);
+                if ($cardDef === null) {
+                    throw new \BgaSystemException("BUG! No card def for cardId $cardId");
+                }
+                $abilityBlack = $cardDef->abilityBlack();
+                if ($abilityBlack === null) {
+                    continue;
+                }
+                if ($abilityBlack->hasAbilityAllMayPlantMoreCard()) {
+                    $plantMoreCard = true;
+                    break;
+                }
+            }
+            if ($plantMoreCard) {
+                break;
+            }
+        }
+
+        if ($plantMoreCard) {
+            $this->notifyAllPlayers(
+                \BX\Action\NTF_MESSAGE,
+                clienttranslate('A player has planted a card that allows everyone to plant an additional card during this plant (green) action'),
+                []
+            );
+            $this->gamestate->nextState('plant');
+        } else {
+            $this->gamestate->nextState('nextPhase');
+        }
+    }
+
+    public function stActionPlantPreSpecialGain()
+    {
+        $this->revealTableauAndFauna();
+
+        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+
+        $hasSpecialGain = false;
+        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
+        foreach ($playerIdArray as $playerId) {
+            foreach ($playerStateMgr->playerPlantedCardIds($playerId) as $cardId) {
+                $cardDef = \EA\CardDefMgr::getByCardId($cardId);
+                if ($cardDef === null) {
+                    throw new \BgaSystemException("BUG! No card def for cardId $cardId");
+                }
+                $abilityBlack = $cardDef->abilityBlack();
+                if ($abilityBlack === null) {
+                    continue;
+                }
+                if ($abilityBlack->hasConditionPerNeighbour()) {
+                    $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
+                    $creator->add(
+                        new \BX\Action\SendMessage(
+                            $playerId,
+                            clienttranslate('${player_name} activates the special black ability of ${cardName}'),
+                            [
+                                'cardName' => $cardDef->name,
+                                'i18n' => ['cardName'],
+                            ]
+                        )
+                    );
+                    $creator->add(new \EA\Actions\Activation\ForceCardActivation($playerId, $cardId));
+                    $this->addPlacementGain($cardId, $creator, $abilityBlack, null);
+                    $this->addInstantGain($cardId, $creator, $abilityBlack);
+                    $creator->commit();
+                    if ($abilityBlack->hasUserPlacementGain()) {
+                        $hasSpecialGain = true;
+                    }
+                }
+            }
+        }
+
+        if ($hasSpecialGain) {
+            $this->gamestate->nextState('gain');
+        } else {
+            $this->gamestate->nextState('nextPhase');
+        }
+    }
+
+    public function stActionPlantSpecialGain()
+    {
+        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+
+        $specialGainPlayerIds = [];
+        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
+        foreach ($playerIdArray as $playerId) {
+            foreach ($playerStateMgr->playerPlantedCardIds($playerId) as $cardId) {
+                $cardDef = \EA\CardDefMgr::getByCardId($cardId);
+                if ($cardDef === null) {
+                    throw new \BgaSystemException("BUG! No card def for cardId $cardId");
+                }
+                $abilityBlack = $cardDef->abilityBlack();
+                if ($abilityBlack === null) {
+                    continue;
+                }
+                if ($abilityBlack->hasConditionPerNeighbour() && $abilityBlack->hasUserPlacementGain()) {
+                    $specialGainPlayerIds[] = $playerId;
+                    break;
+                }
+            }
+        }
+        $this->gamestate->setPlayersMultiactive($specialGainPlayerIds, null, true /*Exclusive*/);
+        $this->gamestate->initializePrivateStateForPlayers($specialGainPlayerIds);
     }
 }

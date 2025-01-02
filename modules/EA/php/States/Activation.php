@@ -98,6 +98,12 @@ trait GameStatesTrait
                 return $pos . $count . ' ${compostFromDeckIcon}';
             case \EA\ABILITY_COMPOST_DESTROY:
                 return $pos . $count . ' ${compostDestroyIcon}';
+            case \EA\ABILITY_SEED:
+                return $pos . $count . ' ${seedIcon}';
+            case \EA\ABILITY_SPROUT_ALL_OTHERS:
+                return '| ${otherPlayersIcon} ' . $pos . $count . ' ${sproutIcon}';
+            case \EA\ABILITY_SPROUT_CHOOSE_ONE:
+                return '| ${onePlayerIcon} ' . $pos . $count . ' ${sproutIcon}';
         }
         return '';
     }
@@ -127,7 +133,12 @@ trait GameStatesTrait
 
             $gain = '';
             $ability->foreachGain(function ($abilityId, $count) use (&$gain, $ability) {
-                $gain .= $this->getActivationAbilityString(true, $abilityId, $count, $ability->hasConditionForCount() || $ability->getDirection() !== null);
+                $gain .= $this->getActivationAbilityString(
+                    true,
+                    $abilityId,
+                    $count,
+                    $ability->hasConditionForCount() || $ability->getDirection() !== null || $ability->hasConditionPerNeighbour()
+                );
                 $gain .= ' ';
             });
             $gain = trim($gain);
@@ -225,7 +236,7 @@ trait GameStatesTrait
         }
     }
 
-    public function activationGain(array $placedSproutList, array $placedGrowthList, array $selectedCompostFromHandCardIds)
+    public function activationGain(array $placedSproutList, array $placedGrowthList, array $selectedCompostFromHandCardIds, ?int $gainedSproutChooseOnePlayerId)
     {
         \BX\Lock\Locker::lock();
         $this->checkAction('activationGain');
@@ -233,16 +244,14 @@ trait GameStatesTrait
         \BX\Action\ActionCommandMgr::apply($playerId);
         $this->updateSeenFaunaObjective($playerId);
 
-        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
         $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
         $cardId = $playerStateMgr->stateActivatedAfterCopyCardId($playerId);
-        $mainActionId = $gameStateMgr->getActiveMainActionId();
-        $ability = \EA\CardDefMgr::getByCardId($cardId)->getAbilityMatchingMainAction($mainActionId);
 
-        $creator = \BX\Action\buildActionCommandCreator($playerId, $ability->mustGainCommit());
+        $creator = \BX\Action\buildActionCommandCreator($playerId, false);
         $creator->add(new \EA\Actions\Ability\PlaceSprout($playerId, $placedSproutList));
         $creator->add(new \EA\Actions\Ability\PlaceGrowth($playerId, $placedGrowthList));
         $creator->add(new \EA\Actions\Ability\PlaceCompostFromHand($playerId, $selectedCompostFromHandCardIds));
+        $creator->add(new \EA\Actions\Ability\PlaceSproutChooseOne($playerId, $gainedSproutChooseOnePlayerId, $cardId));
         $this->addCommonActions($creator);
         $marker = new \EA\Actions\Activation\MarkActivatingNextCard($playerId);
         $creator->add($marker);
@@ -338,7 +347,7 @@ trait GameStatesTrait
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         $mainActionId = $gameStateMgr->getActiveMainActionId();
         $activePlayerId = $gameStateMgr->activePlayerId();
-        $cardIdsThatCanBeCopied = array_map(fn($c) => $c->cardId, $cardMgr->getTableauPlayerCardsWithAbilityMatchingMainAction(
+        $cardIdsThatCanBeCopied = array_map(fn ($c) => $c->cardId, $cardMgr->getTableauPlayerCardsWithAbilityMatchingMainAction(
             $playerId,
             $activePlayerId,
             $mainActionId

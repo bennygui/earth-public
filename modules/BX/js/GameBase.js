@@ -30,14 +30,19 @@ define([
             bx.UITrait,
             bx.UtilTrait,
         ], {
+            DEFAULT_PLAYER_YELLOW_COLOR: 'fbff00',
+            DEFAULT_PLAYER_YELLOW_BACK_COLOR: 'bbbbbb',
+
             constructor() {
                 this.alwaysFixTopActions = false;
                 this.alwaysFixTopActionsMaximum = 30;
                 this.seenStateSet = new Set();
+                this.seenStateList = [];
                 // Format: ['notif', delay]
                 if (this.notificationsToRegister === undefined) {
                     this.notificationsToRegister = [];
                 }
+                this.notificationsToRegister.push(['message', null]);
                 this.notificationsToRegister.push(['NTF_CHANGE_PRIVATE_STATE', 1]);
                 this.notificationsToRegister.push(['NTF_UNDO_PRIVATE_STATE', 1]);
                 this.notificationsToRegister.push(['NTF_MULTI_ACTIVE_ARGS', 1]);
@@ -50,6 +55,7 @@ define([
             },
 
             setup(gamedatas) {
+                this.inherited(arguments);
                 this.setupBrowserDetection();
                 this.setupNotifications();
             },
@@ -65,7 +71,12 @@ define([
 
             onLoadingComplete() {
                 this.inherited(arguments);
+                if (!this.isReadOnly()) {
+                    this.showWelcomeMessage();
+                }
             },
+
+            showWelcomeMessage() { },
 
             isReadOnly() {
                 return this.isSpectator || typeof g_replayFrom != 'undefined' || g_archive_mode;
@@ -73,6 +84,12 @@ define([
 
             isGameSolo() {
                 return (Object.keys(this.gamedatas.players).length == 1);
+            },
+
+            getAllPlayerIds() {
+                const playerIds = Object.keys(this.gamedatas.players);
+                playerIds.sort((p1, p2) => this.gamedatas.players[p1].player_no - this.gamedatas.players[p2].player_no);
+                return playerIds.map((pId) => parseInt(pId));
             },
 
             updatePlayerOrdering() {
@@ -114,8 +131,36 @@ define([
                 }
             },
 
+            setModeInstataneous() {
+                this.inherited(arguments);
+                // From https://bga-devs.github.io/blog/posts/a-real-fast-replay-mode/
+                dojo.style('loader_mask', {
+                    height: '100vh',
+                    position: 'fixed',
+                });
+                dojo.style('leftright_page_wrapper', 'display', 'none');
+            },
+
+            unsetModeInstantaneous() {
+                this.inherited(arguments);
+                // From https://bga-devs.github.io/blog/posts/a-real-fast-replay-mode/
+                dojo.style('leftright_page_wrapper', 'display', 'block');
+            },
+
             onEnteringState(stateName, args) {
+                this.clearBxGeneralActionButtons();
                 this.seenStateSet.add(stateName);
+                this.seenStateList.push(stateName);
+
+                if (!this.getButtonUsesBGAGeneralActions()) {
+                    this.removeAllClickable();
+                    this.removeAllSelected();
+                    this.clearSelectedBeforeRemoveAll();
+                    this.clearTopButtonTimer();
+                    this.clearActionState();
+                    this.clearBxGeneralActionButtons();
+                }
+
                 if (args.args && args.args._private && args.args._private.privateStateId && args.args._private.privateStateId != args.id) {
                     this.setPrivateState(args.args._private.privateStateId, args.args._private);
                 } else if (this.gamedatas.gamestate.type != 'game') {
@@ -129,6 +174,12 @@ define([
 
             onLeavingState(stateName) {
                 this.seenStateSet.add(stateName);
+                this.removeAllClickable();
+                this.removeAllSelected();
+                this.clearSelectedBeforeRemoveAll();
+                this.clearTopButtonTimer();
+                this.clearActionState();
+                this.clearBxGeneralActionButtons();
             },
 
             onStateChangedInternal(stateName, args) {
@@ -146,7 +197,11 @@ define([
             },
             onStateChangedBefore(stateName, args) { },
             onStateChangedNow(stateName, args) { },
-            onStateChangedAfter(stateName, args) { },
+            onStateChangedAfter(stateName, args) {
+                if (!this.getButtonUsesBGAGeneralActions()) {
+                    this.addTopUndoButton(args.args);
+                }
+            },
 
             onUpdateActionButtons(stateName, args) {
                 this.seenStateSet.add(stateName);
@@ -161,11 +216,28 @@ define([
                 }
                 this.onUpdateActionButtonsdAfter(stateName, args);
             },
-            onUpdateActionButtonsBefore(stateName, args) { },
+            onUpdateActionButtonsBefore(stateName, args) {
+                if (this.getButtonUsesBGAGeneralActions()) {
+                    this.removeAllClickable();
+                    this.removeAllSelected();
+                }
+            },
             onUpdateActionButtonsNow(stateName, args) { },
-            onUpdateActionButtonsdAfter(stateName, args) { },
+            onUpdateActionButtonsdAfter(stateName, args) {
+                if (this.getButtonUsesBGAGeneralActions()) {
+                    this.addTopUndoButton(args);
+                }
+            },
 
-            onUndoBegin() { },
+            onUndoBegin() {
+                this.removeAllClickable();
+                this.removeAllSelected();
+                this.clearSelectedBeforeRemoveAll();
+                this.clearTopButtonTimer();
+                this.clearActionState();
+            },
+
+            clearActionState() { },
 
             // @Override: This is a built-in BGA method, overriden to inject html into log items
             format_string_recursive(log, args) {
@@ -197,6 +269,10 @@ define([
                 return Array.from(this.seenStateSet).filter((s) => privateStateSet.has(s)).length > 1;
             },
 
+            seenMoreThanOneStateList() {
+                return this.seenStateList.length > 1;
+            },
+
             setupBrowserDetection() {
                 if (!navigator) {
                     return;
@@ -221,6 +297,29 @@ define([
                 }
             },
 
+            setupBackColorForPlayerColor(gamedatas, backColor = null, frontColor = null) {
+                if (backColor === null) {
+                    backColor = this.DEFAULT_PLAYER_YELLOW_BACK_COLOR;
+                }
+                if (frontColor === null) {
+                    frontColor = this.DEFAULT_PLAYER_YELLOW_COLOR;
+                }
+                frontColor = frontColor.toLowerCase();
+                for (const playerId in gamedatas.players) {
+                    if (gamedatas.players[playerId].player_color.toLowerCase() == 'fbff00') {
+                        gamedatas.players[playerId].color_back = backColor;
+                        const playerPanelNameElem = document.querySelector('#player_name_' + playerId + ' a');
+                        if (playerPanelNameElem !== null) {
+                            playerPanelNameElem.style.backgroundColor = '#' + backColor;
+                        }
+                        const playAreaNameElems = document.querySelectorAll('#game_play_area .player-name[data-player-id="' + playerId + '"]');
+                        for (const elem of playAreaNameElems) {
+                            elem.style.backgroundColor = '#' + backColor;
+                        }
+                    }
+                }
+            },
+
             getHtmlTextForLogArg(key, value) {
                 return '';
             },
@@ -231,7 +330,33 @@ define([
                     const delay = notif[1];
                     const functionName = 'notif_' + this.toPascalCase(notifId.replace(/^NTF_/, ''));
                     debug('Registering notification ' + notifId + ' (' + functionName + ')');
-                    dojo.subscribe(notifId, this, args => this[functionName](args));
+                    dojo.subscribe(notifId, this, (args) => {
+                        if (notifId != 'message') {
+                            const wasSentPrivate = args
+                                && args.args
+                                && args.args.playerId == this.player_id
+                                && this.isTrue(args.args.wasSentPrivate);
+                            if (wasSentPrivate) {
+                                if (delay !== null && delay < 0) {
+                                    this.notifqueue.setSynchronousDuration(0);
+                                }
+                            } else {
+                                this.onBeforeNotification(notifId, args);
+                                let promise = this[functionName](args);
+                                if (promise instanceof Array) {
+                                    promise = Promise.all(promise);
+                                } else if (!promise || !promise.then) {
+                                    promise = Promise.resolve();
+                                }
+                                promise.then(() => {
+                                    this.onAfterNotification(notifId, args);
+                                    if (delay !== null && delay < 0) {
+                                        this.notifqueue.setSynchronousDuration(0);
+                                    }
+                                });
+                            }
+                        }
+                    });
                     if (delay !== null) {
                         if (delay < 0) {
                             this.notifqueue.setSynchronous(notifId);
@@ -241,6 +366,8 @@ define([
                     }
                 }
             },
+            onBeforeNotification(notifId, args) { },
+            onAfterNotification(notifId, args) { },
 
             notif_ChangePrivateState(notif) {
                 this.setPrivateState(notif.args.stateId, notif.args.stateArgs);

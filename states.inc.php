@@ -43,6 +43,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -90,7 +92,8 @@ $machinestates = [
             'actionGrow' => STATE_ACTION_PRE_GROW_ID,
             'actionSoloFauna' => STATE_ACTION_SOLO_FAUNA_ID,
             'activation' => STATE_PRE_ACTIVATION_ID,
-            'gameEndingLastChance' => STATE_GAME_ENDING_LAST_CHANCE_ID,
+            'gameEndingLastChance' => STATE_PRE_GAME_ENDING_LAST_CHANCE_ID,
+            'endTurn' => STATE_PRE_END_TURN_ID,
         ],
     ],
     STATE_MAIN_ACTION_ID => [
@@ -104,6 +107,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -119,6 +124,8 @@ $machinestates = [
             'mainActionChoose',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
@@ -137,9 +144,11 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
-            '' => STATE_GAME_NEXT_PHASE_ID,
+            '' => STATE_ACTION_PLANT_PRE_ADDITIONAL_ID,
         ],
     ],
     STATE_ACTION_PLANT_ACTIVE_FIRST_CARD_ID => [
@@ -153,6 +162,8 @@ $machinestates = [
             'plantActionSkipPlanting',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'chooseCards' => STATE_ACTION_PLANT_ACTIVE_KEEP_CARD_ID,
@@ -173,6 +184,8 @@ $machinestates = [
             'plantActionSkipPlanting',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'chooseCards' => STATE_ACTION_PLANT_ACTIVE_KEEP_CARD_ID,
@@ -184,7 +197,7 @@ $machinestates = [
     STATE_ACTION_PLANT_ACTIVE_KEEP_CARD_ID => [
         "name" => STATE_ACTION_PLANT_ACTIVE_KEEP_CARD,
         "description" => clienttranslate('Other players must play'),
-        "descriptionmyturn" => clienttranslate('${you} must keep one of the drawn cards (plant: ${mainActionId})'),
+        "descriptionmyturn" => clienttranslate('${you} must keep ${nbCards} of the drawn cards (plant: ${mainActionId})'),
         "type" => "private",
         "args" => "argsPlantActionKeepCard",
         "possibleactions" => [
@@ -205,6 +218,8 @@ $machinestates = [
             'plantActionSkipPlanting',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'activateSelectGain' => STATE_ACTION_PLANT_SELECT_GAIN_ID,
@@ -243,6 +258,82 @@ $machinestates = [
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
         ],
     ],
+    STATE_ACTION_PLANT_PRE_ADDITIONAL_ID => [
+        "name" => STATE_ACTION_PLANT_PRE_ADDITIONAL,
+        "type" => "game",
+        "action" => 'stActionPlantPreAdditional',
+        "updateGameProgression" => true,
+        "transitions" => [
+            'plant' => STATE_ACTION_PLANT_ADDITIONAL_ID,
+            'nextPhase' => STATE_ACTION_PLANT_PRE_SPECIAL_GAIN_ID,
+        ],
+    ],
+    STATE_ACTION_PLANT_ADDITIONAL_ID => [
+        "name" => STATE_ACTION_PLANT_ADDITIONAL,
+        "description" => clienttranslate('All players have an additonal plant action'),
+        "descriptionmyturn" => clienttranslate('${you} have an additonal plant action ${mainActionId}'),
+        "type" => "multipleactiveplayer",
+        "args" => "argsEarthDefaultMultiActive",
+        "initialprivate" => STATE_ACTION_PLANT_ADDITIONAL_CARD_ID,
+        "action" => 'stActivateAllPlayersInitialPrivate',
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+        ],
+        "transitions" => [
+            '' => STATE_ACTION_PLANT_PRE_SPECIAL_GAIN_ID,
+        ],
+    ],
+    STATE_ACTION_PLANT_ADDITIONAL_CARD_ID => [
+        "name" => STATE_ACTION_PLANT_ADDITIONAL_CARD,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} have an additonal plant action or skip ${mainActionId}'),
+        "type" => "private",
+        "args" => "argsPlantActionPlant",
+        "possibleactions" => [
+            'plantActionPlanCard',
+            'plantActionSkipPlanting',
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+        ],
+        "transitions" => [
+            'activateSelectGain' => STATE_ACTION_PLANT_SELECT_GAIN_ID,
+            'activateSelectPayment' => STATE_ACTION_PLANT_SELECT_PAYMENT_ID,
+            'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+        ],
+    ],
+    STATE_ACTION_PLANT_PRE_SPECIAL_GAIN_ID => [
+        "name" => STATE_ACTION_PLANT_PRE_SPECIAL_GAIN,
+        "type" => "game",
+        "action" => 'stActionPlantPreSpecialGain',
+        "updateGameProgression" => true,
+        "transitions" => [
+            'gain' => STATE_ACTION_PLANT_SPECIAL_GAIN_ID,
+            'nextPhase' => STATE_GAME_NEXT_PHASE_ID,
+        ],
+    ],
+    STATE_ACTION_PLANT_SPECIAL_GAIN_ID => [
+        "name" => STATE_ACTION_PLANT_SPECIAL_GAIN,
+        "description" => clienttranslate('Some players have special gains after planting'),
+        "descriptionmyturn" => clienttranslate('${you} have special gains after planting'),
+        "type" => "multipleactiveplayer",
+        "args" => "argsEarthDefaultMultiActive",
+        "initialprivate" => STATE_ACTION_PLANT_SELECT_GAIN_ID,
+        "action" => 'stActionPlantSpecialGain',
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+        ],
+        "transitions" => [
+            '' => STATE_GAME_NEXT_PHASE_ID,
+        ],
+    ],
 
     // Action: Compost
     STATE_ACTION_COMPOST_ID => [
@@ -256,6 +347,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -272,9 +365,13 @@ $machinestates = [
             'compostActionChooseGainSoil',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+            'activationChooseBoardOrTableau' => STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID,
+            'activationActivateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
         ],
     ],
 
@@ -298,6 +395,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -314,10 +413,14 @@ $machinestates = [
             'waterActionChooseGainSoil',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'choosePlaceSprout' => STATE_ACTION_WATER_PLACE_SPROUT_ID,
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+            'activationChooseBoardOrTableau' => STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID,
+            'activationActivateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
         ],
     ],
     STATE_ACTION_WATER_PLACE_SPROUT_ID => [
@@ -331,6 +434,8 @@ $machinestates = [
         ],
         "transitions" => [
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+            'activationChooseBoardOrTableau' => STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID,
+            'activationActivateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
         ],
     ],
 
@@ -354,6 +459,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -370,10 +477,14 @@ $machinestates = [
             'growActionChooseDrawCard',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'choosePlaceGrowth' => STATE_ACTION_GROW_PLACE_GROWTH_ID,
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+            'activationChooseBoardOrTableau' => STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID,
+            'activationActivateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
         ],
     ],
     STATE_ACTION_GROW_PLACE_GROWTH_ID => [
@@ -387,6 +498,8 @@ $machinestates = [
         ],
         "transitions" => [
             'confirmEndPhase' => STATE_CONFIRM_END_PHASE_ID,
+            'activationChooseBoardOrTableau' => STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID,
+            'activationActivateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
         ],
     ],
 
@@ -402,6 +515,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -416,6 +531,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
             'soloFaunaChoose',
         ],
         "transitions" => [
@@ -444,6 +561,8 @@ $machinestates = [
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             '' => STATE_GAME_NEXT_PHASE_ID,
@@ -459,6 +578,8 @@ $machinestates = [
             'activationChooseActivationDirection',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'activateOrSkip' => STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID,
@@ -475,6 +596,8 @@ $machinestates = [
             'activationSkipCard',
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'activateCopyCard' => STATE_ACTIVATION_CHOOSE_CARD_TO_COPY_ID,
@@ -509,6 +632,8 @@ $machinestates = [
         "possibleactions" => [
             'activationPay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
         ],
         "transitions" => [
             'activateSelectGain' => STATE_ACTIVATION_SELECT_GAIN_ID,
@@ -585,6 +710,173 @@ $machinestates = [
         ],
         "transitions" => [],
     ],
+    STATE_CONVERT_SELECT_USE_SEED_ID => [
+        "name" => STATE_CONVERT_SELECT_USE_SEED,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must choose how to use one ${seedIcon}'),
+        "type" => "private",
+        "args" => "argsConvertSelectUseSeed",
+        "possibleactions" => [
+            'convertSelectUseSeed',
+            'convertSelectUseSeedGerminate',
+        ],
+        "transitions" => [
+            'gain' => STATE_CONVERT_SELECT_USE_SEED_GAIN_ID,
+        ],
+    ],
+    STATE_CONVERT_SELECT_USE_SEED_GAIN_ID => [
+        "name" => STATE_CONVERT_SELECT_USE_SEED_GAIN,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} can gain up to ${gainList} for using one ${seedIcon}'),
+        "type" => "private",
+        "args" => "argsAbilityGain",
+        "possibleactions" => [
+            'convertSelectUseSeedGain',
+        ],
+        "transitions" => [],
+    ],
+    STATE_CONVERT_SELECT_CREATE_SEED_ID => [
+        "name" => STATE_CONVERT_SELECT_CREATE_SEED,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must choose how to create one ${seedIcon}'),
+        "type" => "private",
+        "args" => "argsConvertSelectCreateSeed",
+        "possibleactions" => [
+            'convertSelectCreateSeedFromSprouts',
+            'convertSelectCreateSeedFromLeaf',
+        ],
+        "transitions" => [],
+    ],
+
+    // End Turn
+    STATE_PRE_END_TURN_ID => [
+        "name" => STATE_PRE_END_TURN,
+        "type" => "game",
+        "action" => 'stPreEndTurn',
+        "transitions" => [
+            '' => STATE_ENTER_END_TURN_ID,
+        ],
+    ],
+    STATE_ENTER_END_TURN_ID => [
+        "name" => STATE_PRE_END_TURN,
+        "type" => "game",
+        "action" => 'stEnterEndTurn',
+        "transitions" => [
+            'endTurn' => STATE_END_TURN_ID,
+            'nextEndTurnEvent' => STATE_END_TURN_EVENT_ID,
+            'nextPhase' => STATE_GAME_NEXT_PHASE_ID,
+            'endGame' => STATE_GAME_ENDING_SCORE_ID,
+        ],
+    ],
+    STATE_END_TURN_ID => [
+        "name" => STATE_END_TURN,
+        "description" => clienttranslate('All players must play the end of turn'),
+        "descriptionmyturn" => clienttranslate('${you} must play the end of turn'),
+        "type" => "multipleactiveplayer",
+        "args" => "argsEarthDefaultMultiActive",
+        "initialprivate" => STATE_END_TURN_CHOOSE_ID,
+        "action" => 'stEndTurn',
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+        ],
+        "transitions" => [
+            '' => STATE_ENTER_END_TURN_ID,
+        ],
+    ],
+    STATE_END_TURN_CHOOSE_ID => [
+        "name" => STATE_END_TURN_CHOOSE,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must play the end of turn. ${endOfGameText}'),
+        "type" => "private",
+        "args" => "argsEndTurnChoose",
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+            'endTurnPlaceExchangeSprout',
+            'endTurnPass',
+            'endTurnPlayEndTurnEvent',
+        ],
+        "transitions" => [
+            'placeSprout' => STATE_END_TURN_PLACE_SPROUT_ID,
+            'endTurnEvent' => STATE_END_TURN_CHOOSE_END_TURN_EVENT_ID,
+        ],
+    ],
+    STATE_END_TURN_PLACE_SPROUT_ID => [
+        "name" => STATE_END_TURN_PLACE_SPROUT,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must place ${sproutIcon}'),
+        "type" => "private",
+        "args" => "argsAbilityGain",
+        "possibleactions" => [
+            'endTurnPlaceExchangeSproutGain',
+        ],
+        "transitions" => [
+        ],
+    ],
+    STATE_END_TURN_CHOOSE_END_TURN_EVENT_ID => [
+        "name" => STATE_END_TURN_CHOOSE_END_TURN_EVENT,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must play an end turn event (no undo)'),
+        "type" => "private",
+        "args" => "argsEndTurnChooseEndTurnEvent",
+        "possibleactions" => [
+            'endTurnChooseEndTurnEvent',
+        ],
+        "transitions" => [
+            'eventSelectPayment' => STATE_EVENT_SELECT_PAYMENT_ID,
+            'eventSelectGain' => STATE_EVENT_SELECT_GAIN_ID,
+        ],
+    ],
+    STATE_END_TURN_EVENT_ID => [
+        "name" => STATE_END_TURN_EVENT,
+        "description" => clienttranslate('All players must choose if they activate the end turn event'),
+        "descriptionmyturn" => clienttranslate('${you} must activate the end turn event or pass'),
+        "type" => "multipleactiveplayer",
+        "args" => "argsEarthDefaultMultiActive",
+        "initialprivate" => STATE_END_TURN_EVENT_CHOOSE_ID,
+        "action" => 'stActivateAllPlayersInitialPrivate',
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+        ],
+        "transitions" => [
+            '' => STATE_END_TURN_EVENT_AFTER_ID,
+        ],
+    ],
+    STATE_END_TURN_EVENT_CHOOSE_ID => [
+        "name" => STATE_END_TURN_EVENT_CHOOSE,
+        "description" => clienttranslate('Other players must play'),
+        "descriptionmyturn" => clienttranslate('${you} must activate the end turn event or pass'),
+        "type" => "private",
+        "args" => "argsEndTurnEventChoose",
+        "possibleactions" => [
+            'eventPlay',
+            'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
+            'endTurnPlaceExchangeSprout',
+            'endTurnEventPass',
+            'endTurnEventActivate',
+        ],
+        "transitions" => [
+            'placeSprout' => STATE_END_TURN_PLACE_SPROUT_ID,
+        ],
+    ],
+    STATE_END_TURN_EVENT_AFTER_ID => [
+        "name" => STATE_END_TURN_EVENT_AFTER,
+        "type" => "game",
+        "action" => 'stEndTurnEventAfter',
+        "transitions" => [
+            '' => STATE_ENTER_END_TURN_ID,
+        ],
+    ],
 
     // Other
     STATE_CONFIRM_END_PHASE_ID => [
@@ -592,19 +884,31 @@ $machinestates = [
         "description" => clienttranslate('Other players must play'),
         "descriptionmyturn" => clienttranslate('${you} must end your current phase'),
         "type" => "private",
-        "args" => "argsEarthDefault",
+        "args" => "argsConfirmEndPhase",
         "possibleactions" => [
             'eventPlay',
             'convertPlay',
+            'convertUseSeed',
+            'convertCreateSeed',
             'confirmEndPhase',
+            'confirmEndPhaseSkipEndOfTurn',
         ],
         "transitions" => [],
     ],
 
+    STATE_PRE_GAME_ENDING_LAST_CHANCE_ID => [
+        "name" => STATE_PRE_GAME_ENDING_LAST_CHANCE,
+        "type" => "game",
+        "action" => 'stPreGameEndingLastChance',
+        "transitions" => [
+            'basicEndGame' => STATE_GAME_ENDING_LAST_CHANCE_ID,
+            'lastEndTurnEndGame' => STATE_PRE_END_TURN_ID,
+        ],
+    ],
     STATE_GAME_ENDING_LAST_CHANCE_ID => [
         "name" => STATE_GAME_ENDING_LAST_CHANCE,
-        "description" => clienttranslate('The game has ended. Other players have a last chance to play events or conversions'),
-        "descriptionmyturn" => clienttranslate('The game has ended. Last chance to play events or conversions'),
+        "description" => clienttranslate('The game has ended. Other players have a last chance to play events or conversions.'),
+        "descriptionmyturn" => clienttranslate('The game has ended. Last chance to play events or conversions.'),
         "type" => "multipleactiveplayer",
         "args" => "argsEarthDefaultMultiActive",
         "initialprivate" => STATE_GAME_ENDING_LAST_CHANCE_CONFIRM_ID,
@@ -620,8 +924,8 @@ $machinestates = [
 
     STATE_GAME_ENDING_LAST_CHANCE_CONFIRM_ID => [
         "name" => STATE_GAME_ENDING_LAST_CHANCE_CONFIRM,
-        "description" => clienttranslate('The game has ended. Other players have a last chance to play events or conversions'),
-        "descriptionmyturn" => clienttranslate('The game has ended. Last chance to play events or conversions'),
+        "description" => clienttranslate('The game has ended. Other players have a last chance to play events or conversions.'),
+        "descriptionmyturn" => clienttranslate('The game has ended. Last chance to play events or conversions.'),
         "type" => "private",
         "args" => "argsEarthDefault",
         "possibleactions" => [

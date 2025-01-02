@@ -32,6 +32,13 @@ const ABILITY_CANNOT_CHOOSE_COLOR = 16;
 // Solo
 const ABILITY_GAIA_FAUNA_UPPER = 17;
 const ABILITY_GAIA_FAUNA_LOWER = 18;
+// Abundance
+const ABILITY_GERMINATE = 19;
+const ABILITY_SEED = 20;
+const ABILITY_SPROUT_ALL_OTHERS = 21;
+const ABILITY_SPROUT_CHOOSE_ONE = 22;
+const ABILITY_ALL_MAY_PLANT_MORE_CARD = 23;
+const ABILITY_KEEP_CARDS_WHEN_PLANTING = 24;
 
 // Conditions for abilities
 const AB_COND_IF_CHOOSE_COLOR = 1;
@@ -41,6 +48,9 @@ const AB_COND_PER_HABITAT = 4;
 const AB_COND_PER_COLOR = 5;
 const AB_COND_WHEN_PLAYING_EVENT = 6;
 const AB_COND_PER_EMPTY = 7;
+// Abundance
+const AB_COND_PER_NEIGHBOUR = 8;
+const AB_COND_PER_GERMINATE = 9;
 
 // Directions for abilities
 const AB_DIRECTION_COLUMN = 0;
@@ -95,6 +105,8 @@ const AB_FAUNA_FLORA_FILLED_FIECES = 26;
 const AB_FAUNA_FLORA_EMPTY_FIECES = 27;
 const AB_FAUNA_CARDS_WITH_EVEN_SCORE = 28;
 const AB_FAUNA_CARDS_WITH_ODD_SCORE = 29;
+// Abundance
+const AB_FAUNA_GERMINATE_CONDITION = 30;
 
 // Scoring abilities
 const AB_SCORE_DIRECTION_CONDITION = 0;
@@ -108,6 +120,14 @@ const AB_SCORE_REMAINING_SOIL = 7;
 const AB_SCORE_REMAINING_CARD_IN_HAND = 8;
 const AB_SCORE_CARD_IN_COMPOST = 9;
 const AB_SCORE_PER_TERRAIN = 10;
+// Abundance
+const AB_SCORE_PER_EVENT = 11;
+const AB_SCORE_DIRECTION_DIFFERENT_COLOR = 12;
+const AB_SCORE_PER_DIRECTIONAL_AID = 13;
+const AB_SCORE_DIRECTION_DIFFERENT_GROWTH = 14;
+const AB_SCORE_DIRECTION_DIFFERENT_SPROUT = 15;
+const AB_SCORE_PER_SET = 16;
+const AB_SCORE_PER_GERMINATE_CONDITION = 17;
 
 // Ecosystem scoring
 const AB_ECO_PER_TOTAL_CARD_TYPE = 0;
@@ -151,6 +171,8 @@ const AB_ECO_PER_CARD_WITH_ODD_SCORE = 37;
 const AB_ECO_PER_CARD_WITH_LESS_GROWTH_MAX_SCORE = 38;
 const AB_ECO_PER_CARD_WITH_MORE_GROWTH_MAX_SCORE = 39;
 const AB_ECO_PER_CARD_WITH_FILLED_FIECES = 40;
+// Abundance
+const AB_ECO_GERMINATE_CONDITION = 41;
 
 class Ability
 {
@@ -183,6 +205,11 @@ class Ability
     public function getDirection()
     {
         return $this->direction;
+    }
+
+    public function hasPayments()
+    {
+        return (count($this->payments) > 0);
     }
 
     public function getPayment(int $ability)
@@ -283,6 +310,9 @@ class Ability
                 case ABILITY_SPROUT:
                 case ABILITY_COMPOST_FROM_HAND:
                     return true;
+                case ABILITY_SPROUT_CHOOSE_ONE:
+                    $playerMgr = \BX\Action\ActionRowMgrRegister::getMgr('player');
+                    return ($playerMgr->getPlayerCount() > 2);
             }
         }
         return false;
@@ -368,6 +398,8 @@ class Ability
                 case AB_COND_PER_TYPE:
                 case AB_COND_PER_HABITAT:
                 case AB_COND_PER_COLOR:
+                case AB_COND_PER_GERMINATE:
+                case AB_COND_PER_NEIGHBOUR:
                     return true;
             }
         }
@@ -389,6 +421,26 @@ class Ability
             }
         }
         return false;
+    }
+
+    public function hasConditionPerNeighbour()
+    {
+        foreach ($this->conditions as $cond) {
+            if ($cond->condition == AB_COND_PER_NEIGHBOUR) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function getConditionPerNeighbourDivisor()
+    {
+        foreach ($this->conditions as $cond) {
+            if ($cond->condition == AB_COND_PER_NEIGHBOUR) {
+                return $cond->conditionType;
+            }
+        }
+        throw new \BgaSystemException('BUG! Ability does not have AB_COND_PER_NEIGHBOUR');
     }
 
     public function getPerTypeCondition()
@@ -428,6 +480,21 @@ class Ability
     public function hasCanPlantOver()
     {
         return ($this->canPlantOverColor() !== null);
+    }
+
+    public function isCountForAllCards()
+    {
+        return ($this->color == AB_COLOR_BLACK && $this->hasConditionForCount());
+    }
+
+    public function hasAbilityAllMayPlantMoreCard()
+    {
+        foreach ($this->gains as $gain) {
+            if ($gain->ability == ABILITY_ALL_MAY_PLANT_MORE_CARD) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

@@ -22,6 +22,10 @@ const LEAF_LOCATION_ID_PLAYER_BOARD = 0;
 const LEAF_LOCATION_ID_ACTION = 1;
 const LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA = 2;
 const LEAF_LOCATION_ID_FAUNA_BOARD_TABLEAU_BONUS = 3;
+const LEAF_LOCATION_ID_DICARD = 4;
+const LEAF_LOCATION_ID_GAIA_ABUNDANCE = 5;
+
+const MAX_FAUNA_LEAFS_OR_FAUNA_BOARD = 5;
 
 class LeafToken extends \BX\Action\BaseActionRow
 {
@@ -66,6 +70,30 @@ class LeafToken extends \BX\Action\BaseActionRow
     public function isBonus()
     {
         return (array_search($this->leafId, LEAF_ID_BONUS_IDS) !== false);
+    }
+
+    public function moveToDiscard()
+    {
+        $this->locationId = LEAF_LOCATION_ID_DICARD;
+        $this->locationX = null;
+        $this->locationY = null;
+        $this->locationOrder = null;
+        $this->privateLocationId = null;
+        $this->privateLocationX = null;
+        $this->privateLocationY = null;
+        $this->privateLocationOrder = null;
+    }
+
+    public function moveToGaiaAbundance()
+    {
+        $this->locationId = LEAF_LOCATION_ID_GAIA_ABUNDANCE;
+        $this->locationX = null;
+        $this->locationY = null;
+        $this->locationOrder = null;
+        $this->privateLocationId = null;
+        $this->privateLocationX = null;
+        $this->privateLocationY = null;
+        $this->privateLocationOrder = null;
     }
 
     public function moveToPlayerBoard()
@@ -127,6 +155,11 @@ class LeafToken extends \BX\Action\BaseActionRow
         $this->locationOrder = null;
     }
 
+    public function isOnPlayerBoard()
+    {
+        return ($this->getLocationId() == LEAF_LOCATION_ID_PLAYER_BOARD);
+    }
+
     public function isOnFaunaBoard()
     {
         return ($this->getLocationId() == LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA
@@ -146,6 +179,11 @@ class LeafToken extends \BX\Action\BaseActionRow
     public function isOnFaunaBoardTableauBonus()
     {
         return ($this->getLocationId() == LEAF_LOCATION_ID_FAUNA_BOARD_TABLEAU_BONUS);
+    }
+
+    public function isOnGaiaAbundance()
+    {
+        return ($this->getLocationId() == LEAF_LOCATION_ID_GAIA_ABUNDANCE);
     }
 
     private function getLocationId()
@@ -290,6 +328,11 @@ class LeafTokenMgr extends \BX\Action\BaseActionRowMgr
         return array_filter($this->getAll(), fn ($t) => $t->leafId == LEAF_ID_ACTION);
     }
 
+    public function getLeafTokenByPlayerId(int $playerId)
+    {
+        return array_filter($this->getAll(), fn ($t) => $t->playerId == $playerId);
+    }
+
     public function getTableauBonusLeafTokenForPlayerId(int $playerId)
     {
         return $this->getLeafTokenByLeafIdAndPlayerId(LEAF_ID_TABLEAU_BONUS, $playerId);
@@ -306,6 +349,15 @@ class LeafTokenMgr extends \BX\Action\BaseActionRowMgr
             $this->getAll(),
             fn ($t) => $t->isBonus() && $t->isOnFaunaBoardFauna() && $t->locationX == $x && $t->locationY == $y
         );
+    }
+
+    public function getDiscardableLeafInOrder(int $playerId)
+    {
+        $leafs = array_values(array_filter($this->getLeafTokenByPlayerId($playerId), fn ($t) => $t->leafId != LEAF_ID_ACTION && $t->isOnPlayerBoard()));
+        if (count($leafs) > 0) {
+            return $leafs;
+        }
+        return array_values(array_filter($this->getLeafTokenByPlayerId($playerId), fn ($t) => $t->leafId != LEAF_ID_ACTION && $t->isOnFaunaBoardFauna() && $t->locationOrder === null));
     }
 
     public function countFaunaLeafOnFaunaFaunaByPlayerId(int $playerId)
@@ -377,6 +429,71 @@ class LeafTokenMgr extends \BX\Action\BaseActionRowMgr
             throw new \BgaSystemException("BUG! Invalid location: $locationX and $locationY");
         }
         throw new \BgaSystemException("BUG! Invalid location: $locationX and $locationY");
+    }
+
+    public function getLeafTokenCanBeOnFaunaBoardByPositiondAndPlayerId(int $locationX, int $locationY, int $playerId, bool $considerPrivateVisibility = true)
+    {
+        foreach ($this->getAll() as $t) {
+            if ($t->playerId != $playerId) {
+                continue;
+            }
+            if ($considerPrivateVisibility && $t->hasPrivateLocation()) {
+                if (
+                    $t->privateLocationId != LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA
+                    || $t->privateLocationX != $locationX
+                    || $t->privateLocationY != $locationY
+                ) {
+                    continue;
+                }
+            } else if (
+                $t->locationId != LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA
+                || $t->locationX != $locationX
+                || $t->locationY != $locationY
+            ) {
+                continue;
+            }
+            return $t;
+        }
+
+        foreach ($this->getFaunaLeafTokenByPlayerId($playerId) as $t) {
+            if ($t->isOnPlayerBoard()) {
+                return $t;
+            }
+        }
+        $t = $this->getTableauBonusLeafTokenForPlayerId($playerId);
+        if ($t->isOnPlayerBoard()) {
+            return $t;
+        }
+        return null;
+    }
+
+    public function getLeafTokenCanBeOnTableauBonusByPlayerId(int $playerId)
+    {
+        $t = $this->getTableauBonusLeafTokenForPlayerId($playerId);
+        if ($t->isOnFaunaBoardTableauBonus()) {
+            return $t;
+        }
+        foreach ($this->getFaunaLeafTokenByPlayerId($playerId) as $t) {
+            if ($t->isOnFaunaBoardTableauBonus()) {
+                return $t;
+            }
+        }
+        $t = $this->getTableauBonusLeafTokenForPlayerId($playerId);
+        if ($t->isOnPlayerBoard()) {
+            return $t;
+        }
+        foreach ($this->getFaunaLeafTokenByPlayerId($playerId) as $t) {
+            if ($t->isOnPlayerBoard()) {
+                return $t;
+            }
+        }
+        return null;
+    }
+
+    public function isFaunaPositionFull(int $locationX, int $locationY)
+    {
+        $count = count(array_filter($this->getAll(), fn ($t) => $t->locationOrder !== null && $t->locationX == $locationX && $locationY == $t->locationY));
+        return ($count >= MAX_FAUNA_LEAFS_OR_FAUNA_BOARD);
     }
 
     public function debugShuffePlacedLeafTokens()

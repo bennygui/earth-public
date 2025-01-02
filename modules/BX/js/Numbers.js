@@ -26,6 +26,10 @@ define([
                 this.currentValues = initialValues;
                 this.targetValues = initialValues;
                 this.onFinishStepValues = [];
+                this.onPreToValues = null;
+                this.formatOneFct = null;
+                this.formatMultipleFct = null;
+                this.nullIndicator = '-';
                 this.ensureNumbers();
                 this.update();
             },
@@ -37,10 +41,41 @@ define([
                     this.targetIdsOrElements = [this.targetIdsOrElements, targetIdOrElement];
                 }
                 this.update();
+                return this;
             },
 
             registerOnFinishStepValues(callback) {
                 this.onFinishStepValues.push(callback);
+                return this;
+            },
+
+            promiseOnFinishStepValues() {
+                return new Promise((resolve, reject) => {
+                    this.registerOnFinishStepValues(() => resolve());
+                });
+            },
+
+            setOnPreToValues(callback) {
+                this.onPreToValues = callback;
+                return this;
+            },
+
+            setFormatOneFunction(callback) {
+                this.formatOneFct = callback;
+                this.update();
+                return this;
+            },
+
+            setFormatMultipleFunction(callback) {
+                this.formatMultipleFct = callback;
+                this.update();
+                return this;
+            },
+
+            setNullIndicator(char) {
+                this.nullIndicator = char;
+                this.update();
+                return this;
             },
 
             getValues() {
@@ -56,6 +91,9 @@ define([
                 this.targetValues = values;
                 this.ensureNumbers();
                 this.update();
+                for (const callback of this.onFinishStepValues) {
+                    callback(this);
+                }
             },
 
             toValue(value, isInstantaneous = false) {
@@ -63,6 +101,9 @@ define([
             },
 
             toValues(values, isInstantaneous = false) {
+                if (this.onPreToValues !== null) {
+                    this.onPreToValues(values, this);
+                }
                 if (isInstantaneous || gameui.isFastMode()) {
                     this.setValues(values);
                 } else {
@@ -143,22 +184,28 @@ define([
                     for (let i = 0; i < this.currentValues.length; ++i) {
                         formatted.push(this.formatOne(this.currentValues[i], this.targetValues[i]));
                     }
-                    return this.formatMultiple(formatted);
+                    return this.formatMultiple(formatted, this.currentValues);
                 } else {
                     return this.formatOne(this.currentValues, this.targetValues);
                 }
             },
 
             formatOne(currentValue, targetValue) {
+                if (this.formatOneFct !== null) {
+                    return this.formatOneFct(currentValue, targetValue);
+                }
                 const span = document.createElement('span');
                 if (currentValue != targetValue) {
                     span.classList.add('bx-counter-in-progress');
                 }
-                span.innerText = (currentValue === null ? '-' : currentValue);
+                span.innerText = (currentValue === null ? this.nullIndicator : currentValue);
                 return span.outerHTML;
             },
 
-            formatMultiple(formattedValues) {
+            formatMultiple(formattedValues, currentValues) {
+                if (this.formatMultipleFct !== null) {
+                    return this.formatMultipleFct(formattedValues, currentValues);
+                }
                 return formattedValues.join('/');
             },
 

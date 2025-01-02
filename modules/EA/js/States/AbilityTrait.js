@@ -49,10 +49,35 @@ define([
                     placeListArgs['selectedHandChoosingCard'] = 0;
                     placeListArgs['nbHandChoosingCards'] = args.handChoosingCardIds.length;
                 }
+                let hasChooseOne = false;
+                let chooseOnePlayers = [];
+                if (parseInt(args.gainedSproutChooseOne) > 0) {
+                    hasChooseOne = true;
+                    placeListLogs.push('| ${onePlayerIcon} +${gainedSproutChooseOne} ${sproutIcon}');
+                    placeListArgs['gainedSproutChooseOne'] = args.gainedSproutChooseOne;
+                    placeListArgs['onePlayerIcon'] = _('one player');
+                    placeListArgs['sproutIcon'] = _('sprout(s)');
+                    chooseOnePlayers = Object.keys(this.gamedatas.players).filter((pId) => pId != this.player_id);
+                }
+                let chooseOneControler = this.addTopButtonCheckbox(
+                    chooseOnePlayers,
+                    (pId) => this.format_string_recursive(
+                        '+${gainedSproutChooseOne} ${sproutIcon} ${name}',
+                        {
+                            gainedSproutChooseOne: args.gainedSproutChooseOne,
+                            sproutIcon: _('sprout(s)'),
+                            name: this.createPlayerColorNameElement(pId).outerHTML,
+                        }
+                    ),
+                    () => {
+                        args.onUpdateGain();
+                    }
+                );
+
                 const updateButton = () => {
                     const buttonElem = document.getElementById(BUTTON_GAIN_PLACE_ID);
                     buttonElem.innerHTML = this.format_string_recursive(
-                        hasGain ? _('Gain ${placeList}') : _('Gain nothing'),
+                        hasGain ? _('Gain ${placeList}') : hasChooseOne ? _('Give ${placeList}') : _('Gain nothing'),
                         {
                             placeList: {
                                 log: placeListLogs.join(', '),
@@ -66,26 +91,41 @@ define([
                     placeListArgs['placedGrowth'] = this.gainMgr.getPlacedGrowth();
                     placeListArgs['placedCompostFromHand'] = this.gainMgr.getSelectedCompostFromHandCardIds().length;
                     placeListArgs['selectedHandChoosingCard'] = this.gainMgr.getSelectedHandChoosingCardIds().length;
-                    gameui.setTopButtonValid(BUTTON_GAIN_PLACE_ID, this.gainMgr.isCompostFromHandValid() && this.gainMgr.isHandChoosingValid());
+                    gameui.setTopButtonValid(
+                        BUTTON_GAIN_PLACE_ID,
+                        this.gainMgr.isCompostFromHandValid()
+                        && this.gainMgr.isHandChoosingValid()
+                        && chooseOneControler.hasSelectedValue()
+                    );
                     updateButton();
                 };
                 this.gainMgr.setupGain(args);
                 this.addTopButtonPrimaryWithValid(
                     BUTTON_GAIN_PLACE_ID,
                     '',
-                    args.handChoosingCardIds.length > 0
-                        ? _('You must select only one card to keep')
-                        : _('You must select less cards to compost'),
+                    hasChooseOne
+                        ? _('You must select a player that will receive sprout(s)')
+                        : args.handChoosingCardIds.length > 0
+                            ? _('You must select only one card to keep')
+                            : _('You must select less cards to compost'),
                     () => {
                         const placedSproutList = this.gainMgr.getPlacedSproutList().join(',');
                         const placedGrowthList = this.gainMgr.getPlacedGrowthList().join(',');
                         const selectedCompostFromHandCardIds = this.gainMgr.getSelectedCompostFromHandCardIds().join(',');
                         const selectedHandChoosingCardIds = this.gainMgr.getSelectedHandChoosingCardIds().join(',');
                         let confirm = Promise.resolve();
+                        let moreInfoText = '';
+                        if (
+                            gameui.isTrue(gameui.gamedatas.gameHasExpansionAbundance)
+                            && this.gainMgr.hasSproutGainNoDirection()
+                            && !this.gainMgr.hasMaxedSproutGain()
+                        ) {
+                            moreInfoText = '<br/>' + _('(Unplaced sprouts will be placed on your player board.)');
+                        }
                         if (this.gainMgr.hasPlacedNoGain()) {
-                            confirm = gameui.showConfirmDialog(_('You have chosen to gain nothing, are you sure?'));
+                            confirm = gameui.showConfirmDialog(_('You have chosen to gain nothing, are you sure?') + moreInfoText);
                         } else if (!this.gainMgr.hasMaxedGain()) {
-                            confirm = gameui.showConfirmDialog(_('You still have more you could choose to gain, are you sure?'));
+                            confirm = gameui.showConfirmDialog(_('You still have more you could choose to gain, are you sure?') + moreInfoText);
                         }
                         confirm.then(() => {
                             this.gainMgr.pause();
@@ -94,6 +134,7 @@ define([
                                 placedGrowthList: placedGrowthList,
                                 selectedCompostFromHandCardIds: selectedCompostFromHandCardIds,
                                 selectedHandChoosingCardIds: selectedHandChoosingCardIds,
+                                gainedSproutChooseOnePlayerId: chooseOneControler.selectedValue(),
                             })
                                 .catch(() => this.gainMgr.resume());
                         });
@@ -102,7 +143,10 @@ define([
                 this.addTopButtonSecondary(
                     'button-gain-reset',
                     _('Reset'),
-                    () => this.gainMgr.resetGain()
+                    () => {
+                        this.gainMgr.resetGain();
+                        chooseOneControler.reset();
+                    }
                 );
             },
 

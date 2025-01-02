@@ -32,6 +32,12 @@
     z-index: 9999;
 }
 
+// For notifications: Align inline-blocks
+#pagemaintitletext > * {
+    vertical-align: middle;
+}
+
+// General
 .bx-hidden {
     display: none !important;
 }
@@ -49,10 +55,10 @@
 }
 
 .bx-clickable.bx-border {
-    border: 2px solid red !important;
+    outline: 2px solid red !important;
 
     @media (max-width: 480px) {
-        border: 4px solid red !important;
+        outline: 4px solid red !important;
     }
 }
 
@@ -66,12 +72,12 @@
 
 //.bx-selected {}
 .bx-selected.bx-selected.bx-selected.bx-border {
-    border: 4px solid blue !important;
+    outline: 4px solid blue !important;
     box-shadow: inset 0px 0px 0 2000px #0000ff33;
 }
 
 .bx-selected.bx-selected.bx-selected.bx-selected-secondary.bx-border {
-    border: 4px solid green !important;
+    outline: 4px solid green !important;
     box-shadow: inset 0px 0px 0 2000px #0000ff33;
 }
 
@@ -90,6 +96,10 @@
 .bx-top-button-invalid {
     background: #d75500;
     border: 1px solid #993d00;
+}
+
+.bx-top-button-checkbox-check {
+    font-size: 1.4em;
 }
 
 .bx-flip-container {
@@ -127,6 +137,26 @@
     }
 }
 
+.bx-flip-container.bx-flip-vertical {
+    .bx-flip-inner {
+        transform: rotateX(0deg);
+
+        .bx-flip-front,
+        .bx-flip-back {
+            transform: rotateX(0deg);
+        }
+
+        .bx-flip-back {
+            transform: rotateX(180deg);
+        }
+    }
+
+    &.bx-flipped .bx-flip-inner {
+        transform: rotateX(180deg);
+    }
+}
+
+
 .bx-counter-in-progress {
     color: red !important;
     font-weight: 900;
@@ -143,7 +173,8 @@
     align-items: center;
     cursor: pointer;
 
-    #generalactions & {
+    #generalactions &,
+    #bx-generalactions & {
         display: inline-flex;
         font-size: 16px;
         margin-left: 10px;
@@ -266,7 +297,7 @@
     color: #555555 !important;
 }
 
-#popin_ea-information-dialog {
+#popin_bx-information-dialog {
     @media (pointer: coarse) {
         font-size: 0.8rem;
     }
@@ -281,4 +312,130 @@
         list-style: disc;
         margin-left: 1rem;
     }
+}
+
+// Last Round
+#bx-display-last-round {
+    padding: 5px;
+    text-align: center;
+    background-color: #c10707;
+    font-weight: bold;
+    margin: 5px;
+    border-radius: 10px;
+    color: white;
+    box-shadow: 0px 0px 3px black;
+
+    .bx-background-dark & {
+        box-shadow: 0px 0px 3px white;
+    }
+}
+
+// Player panel
+.bx-player-panel-row {
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// Pills
+
+.bx-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: black;
+    background-color: #ffffffaa;
+    margin: 2px;
+    border-radius: 5px;
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+
+    .bx-pill-counter {
+        margin: 3px;
+        font-size: 1.0rem;
+        text-align: center;
+    }
+}
+
+// Counters
+.bx-counter {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: black;
+    background-color: white;
+    padding: 0.3rem;
+    border-radius: 100rem;
+    border: 1px black solid;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+// Dice based on https://codepen.io/SteveJRobertson/pen/zxEwrK
+.bx-dice {
+    display: inline-block;
+    width: 45px;
+    height: 45px;
+    position: relative;
+
+    perspective: 1000px;
+    perspective-origin: 50% 100%;
+
+    .bx-dice-faces {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+
+        transform-style: preserve-3d;
+
+        .bx-dice-face {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            width: 45px;
+            height: 22px;
+            border: 1px solid black;
+            margin: 0 auto;
+            padding: 11px 0px;
+            background-color: #ffffff;
+            border-radius: 5px;
+        }
+
+        // Front
+        .bx-dice-face-0 {
+            transform: translateZ(22px);
+        }
+
+        // Back
+        .bx-dice-face-1 {
+            transform: rotateX(-180deg) translateZ(22px);
+        }
+
+        // Right
+        .bx-dice-face-2 {
+            transform: rotateY(90deg) translateZ(22px);
+        }
+
+        // Left
+        .bx-dice-face-3 {
+            transform: rotateY(-90deg) translateZ(22px);
+        }
+
+        // Top
+        .bx-dice-face-4 {
+            transform: rotateX(90deg) translateZ(22px);
+        }
+
+        // Bottom
+        .bx-dice-face-5 {
+            transform: rotateX(-90deg) translateZ(22px);
+        }
+    }
+}
+
+// Actions
+#bx-generalactions {
+    display: inline;
 }

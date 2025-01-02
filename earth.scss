@@ -35,7 +35,7 @@ html.ea-background-dark {
 }
 
 .bx-clickable.bx-border {
-    border: 4px solid red !important;
+    outline: 4px solid red !important;
 }
 
 body {
@@ -249,6 +249,32 @@ body {
     }
 }
 
+// End Turn Event
+#ea-area-card-end-turn-container {
+    order: 1;
+    width: 90%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-self: center;
+    justify-content: center;
+    background-color: #ffffff33;
+    border-radius: 5px;
+
+    margin: 10px;
+    padding: 10px;
+
+    &:empty {
+        margin: 0px;
+        padding: 0px;
+    }
+
+    .ea-card-container {
+        margin: 5px;
+        order: var(--ea-end-turn-order);
+    }
+}
+
 // Common Area
 #ea-area-common {
     order: 4;
@@ -276,6 +302,24 @@ body {
     .ea-background-dark & {
         box-shadow: 0px 0px 5px white;
     }
+}
+
+#ea-fauna-board-fauna-abundance-tableau-bonus {
+    position: absolute;
+    top: calc(704px * #{$static-scale} * var(--ea-zoom));
+    left: calc(1358px * #{$static-scale} * var(--ea-zoom));
+    z-index: 1;
+
+    .ea-fauna-board-beginner & {
+        top: calc(702px * #{$static-scale} * var(--ea-zoom));
+        left: calc(894px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    width: calc(84px * var(--ea-zoom));
+    height: calc(95px * var(--ea-zoom));
+    background-image: url('img/board/fauna_abundance_11.jpg');
+    image-rendering: -webkit-optimize-contrast;
+    background-size: calc(84px * var(--ea-zoom)) calc(95px * var(--ea-zoom));
 }
 
 #ea-fauna-board-fauna-card-0-0 {
@@ -717,6 +761,22 @@ body {
     }
 }
 
+#ea-gaia-board-abundance-leaf {
+    position: absolute;
+    top: calc(950px * #{$static-scale} * var(--ea-zoom));
+    left: calc(870px * #{$static-scale} * var(--ea-zoom));
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+
+    width: calc(500px * #{$static-scale} * var(--ea-zoom));
+
+    .ea-token-leaf {
+        margin: 2px;
+    }
+}
+
 
 // Player area
 .ea-area-player {
@@ -867,6 +927,7 @@ body {
         width: 50%;
         height: calc(54px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-endgame {
         bottom: unset;
         top: 0px;
@@ -878,23 +939,28 @@ body {
     .ea-player-board-bottom-sprout {
         left: calc(50px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-compost {
         left: calc(180px * #{$static-scale} * var(--ea-zoom));
         width: calc(182px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-growth {
         left: calc(387px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-draw {
         left: calc(507px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-plant {
         left: calc(627px * #{$static-scale} * var(--ea-zoom));
     }
+
     .ea-player-board-bottom-spend {
         left: calc(772px * #{$static-scale} * var(--ea-zoom));
     }
-    
+
     .ea-player-board-bottom-score-base {
         bottom: unset;
         top: calc(83px * #{$static-scale} * var(--ea-zoom));
@@ -926,7 +992,7 @@ body {
         width: calc(381px * #{$static-scale} * var(--ea-zoom));
         height: calc(78px * #{$static-scale} * var(--ea-zoom));
     }
-    
+
     .ea-player-board-bottom-score-growth {
         bottom: unset;
         top: calc(83px * #{$static-scale} * var(--ea-zoom));
@@ -957,6 +1023,83 @@ body {
         left: calc(1452px * #{$static-scale} * var(--ea-zoom));
         width: calc(381px * #{$static-scale} * var(--ea-zoom));
         height: calc(78px * #{$static-scale} * var(--ea-zoom));
+    }
+}
+
+.ea-player-board-bottom-abundance {
+    position: relative;
+    width: calc(1870px * #{$static-scale} * var(--ea-zoom));
+    height: calc(438px * #{$static-scale} * var(--ea-zoom));
+    background-image: url('img/board/player_bottom_abundance.jpg');
+    image-rendering: -webkit-optimize-contrast;
+    background-size: calc(1870px * #{$static-scale} * var(--ea-zoom)) calc(438px * #{$static-scale} * var(--ea-zoom));
+    box-shadow: 0px 5px 5px 0 black;
+
+    &.ea-solo {
+        background-image: url('img/board/player_bottom_abundance_solo.jpg');
+    }
+
+    .ea-background-dark & {
+        box-shadow: 0px 5px 5px 0 white;
+    }
+
+    * {
+        position: absolute;
+        bottom: 0px;
+        width: calc(102px * #{$static-scale} * var(--ea-zoom));
+        height: 70%;
+    }
+
+    .ea-player-board-bottom-abundance-create-seed {
+        bottom: unset;
+        top: calc(13px * #{$static-scale} * var(--ea-zoom));
+        left: calc(60px * #{$static-scale} * var(--ea-zoom));
+        width: calc(550px * #{$static-scale} * var(--ea-zoom));
+        height: calc(67px * #{$static-scale} * var(--ea-zoom));
+        border-radius: calc(15px * 0.75 * var(--ea-zoom));
+    }
+
+    &.ea-solo .ea-player-board-bottom-abundance-create-seed {
+        top: calc(23px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-use-seed {
+        bottom: unset;
+        top: calc(13px * #{$static-scale} * var(--ea-zoom));
+        left: calc(820px * #{$static-scale} * var(--ea-zoom));
+        width: calc(900px * #{$static-scale} * var(--ea-zoom));
+        height: calc(67px * #{$static-scale} * var(--ea-zoom));
+        border-radius: calc(15px * 0.75 * var(--ea-zoom));
+    }
+
+    &.ea-solo .ea-player-board-bottom-abundance-use-seed {
+        top: calc(23px * #{$static-scale} * var(--ea-zoom));
+        left: calc(860px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-germinate {
+        left: calc(90px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-player-1 {
+        left: calc(250px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-player-2 {
+        left: calc(450px * #{$static-scale} * var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-sprout-storage {
+        bottom: unset;
+        top: calc(140px* 0.75* var(--ea-zoom));
+        left: calc(750px* 0.75* var(--ea-zoom));
+        width: calc(870px* 0.75* var(--ea-zoom));
+        height: calc(300px* 0.75* var(--ea-zoom));
+        border-radius: calc(15px* 0.75* var(--ea-zoom));
+    }
+
+    .ea-player-board-bottom-abundance-end-turn-sprout {
+        right: calc(110px * #{$static-scale} * var(--ea-zoom));
     }
 }
 
@@ -996,7 +1139,8 @@ body {
             }
         }
 
-        .ea-player-board-bottom {
+        .ea-player-board-bottom,
+        .ea-player-board-bottom-abundance {
             top: -20px;
         }
     }
@@ -1010,7 +1154,7 @@ body {
     transform: rotate(315deg);
 }
 
-.ea-player-board-leaf-board-5 {
+.ea-player-board-leaf-board-0 {
     opacity: 0;
 }
 
@@ -1071,7 +1215,7 @@ body {
 .ea-player-board-action-0 {
     position: absolute;
     top: calc(5px * #{$static-scale} * var(--ea-zoom));
-    left: calc(5px * #{$static-scale} * var(--ea-zoom));
+    left: calc(12px * #{$static-scale} * var(--ea-zoom));
     width: calc(430px * #{$static-scale} * var(--ea-zoom));
     height: calc(280px * #{$static-scale} * var(--ea-zoom));
     border-radius: calc(15px * 0.75 * var(--ea-zoom));
@@ -1080,7 +1224,7 @@ body {
 .ea-player-board-action-1 {
     position: absolute;
     top: calc(5px * #{$static-scale} * var(--ea-zoom));
-    left: calc(475px * #{$static-scale} * var(--ea-zoom));
+    left: calc(485px * #{$static-scale} * var(--ea-zoom));
     width: calc(430px * #{$static-scale} * var(--ea-zoom));
     height: calc(280px * #{$static-scale} * var(--ea-zoom));
     border-radius: calc(15px * 0.75 * var(--ea-zoom));
@@ -1089,7 +1233,7 @@ body {
 .ea-player-board-action-2 {
     position: absolute;
     top: calc(5px * #{$static-scale} * var(--ea-zoom));
-    left: calc(940px * #{$static-scale} * var(--ea-zoom));
+    left: calc(955px * #{$static-scale} * var(--ea-zoom));
     width: calc(430px * #{$static-scale} * var(--ea-zoom));
     height: calc(280px * #{$static-scale} * var(--ea-zoom));
     border-radius: calc(15px * 0.75 * var(--ea-zoom));
@@ -1098,7 +1242,7 @@ body {
 .ea-player-board-action-3 {
     position: absolute;
     top: calc(5px * #{$static-scale} * var(--ea-zoom));
-    left: calc(1410px * #{$static-scale} * var(--ea-zoom));
+    left: calc(1424px * #{$static-scale} * var(--ea-zoom));
     width: calc(430px * #{$static-scale} * var(--ea-zoom));
     height: calc(280px * #{$static-scale} * var(--ea-zoom));
     border-radius: calc(15px * 0.75 * var(--ea-zoom));
@@ -1120,11 +1264,39 @@ body {
 
 .ea-player-soil-conversion-box {
     position: absolute;
-    top: calc(1667px * #{$static-scale} * var(--ea-zoom));
-    left: calc(815px * #{$static-scale} * var(--ea-zoom));
+    top: calc(1678px * #{$static-scale} * var(--ea-zoom));
+    left: calc(826px * #{$static-scale} * var(--ea-zoom));
     width: calc(225px * #{$static-scale} * var(--ea-zoom));
     height: calc(60px * #{$static-scale} * var(--ea-zoom));
     border-radius: calc(15px * 0.75 * var(--ea-zoom));
+}
+
+.ea-player-seed-count {
+    position: absolute;
+    top: calc(1750px * #{$static-scale} * var(--ea-zoom));
+    left: calc(580px * #{$static-scale} * var(--ea-zoom));
+}
+
+.ea-player-seed-box {
+    position: absolute;
+    top: calc(1560px * #{$static-scale} * var(--ea-zoom));
+    left: calc(536px * #{$static-scale} * var(--ea-zoom));
+    width: calc(186px * #{$static-scale} * var(--ea-zoom));
+    height: calc(181px * #{$static-scale} * var(--ea-zoom));
+}
+
+.ea-player-exchange-sprout-count {
+    position: absolute;
+    top: calc(1750px * #{$static-scale} * var(--ea-zoom));
+    left: calc(1180px * #{$static-scale} * var(--ea-zoom));
+}
+
+.ea-player-exchange-sprout-box {
+    position: absolute;
+    top: calc(1560px * #{$static-scale} * var(--ea-zoom));
+    left: calc(1136px * #{$static-scale} * var(--ea-zoom));
+    width: calc(186px * #{$static-scale} * var(--ea-zoom));
+    height: calc(181px * #{$static-scale} * var(--ea-zoom));
 }
 
 .ea-player-board-card-0 {
@@ -1223,7 +1395,7 @@ body {
     background-image: url('img/token/leafs.png');
     image-rendering: -webkit-optimize-contrast;
     background-position: calc(0px * var(--ea-zoom)) calc(0px * var(--ea-zoom));
-    background-size: calc(500px * #{$static-scale} * var(--ea-zoom)) calc(100px * #{$static-scale} * var(--ea-zoom));
+    background-size: calc(600px * #{$static-scale} * var(--ea-zoom)) calc(100px * #{$static-scale} * var(--ea-zoom));
     filter: drop-shadow(0 0 1px black);
 
     &.blue {
@@ -1246,6 +1418,10 @@ body {
         background-position: calc(-400px * #{$static-scale} * var(--ea-zoom)) calc(0px * var(--ea-zoom));
     }
 
+    &.pink {
+        background-position: calc(-500px * #{$static-scale} * var(--ea-zoom)) calc(0px * var(--ea-zoom));
+    }
+
     // Remove shadow on iOS
     .bx-browser-is-ios & {
         filter: none;
@@ -1259,6 +1435,21 @@ body {
     background-image: url('img/token/soil.png');
     image-rendering: -webkit-optimize-contrast;
     background-size: calc(172px * #{$static-scale} * var(--ea-zoom)) calc(172px * #{$static-scale} * var(--ea-zoom));
+    filter: drop-shadow(0 0 1px black);
+
+    // Remove shadow on iOS
+    .bx-browser-is-ios & {
+        filter: none;
+    }
+}
+
+// Seed token
+.ea-token-seed {
+    width: calc(170px * #{$static-scale} * var(--ea-zoom));
+    height: calc(170px * #{$static-scale} * var(--ea-zoom));
+    background-image: url('img/token/seed.png');
+    image-rendering: -webkit-optimize-contrast;
+    background-size: calc(170px * #{$static-scale} * var(--ea-zoom)) calc(170px * #{$static-scale} * var(--ea-zoom));
     filter: drop-shadow(0 0 1px black);
 
     // Remove shadow on iOS
@@ -1471,7 +1662,16 @@ $icon-name-list: 'ea-icon-scoring',
 'ea-icon-card-type-island',
 'ea-icon-plant',
 'ea-icon-soil',
-'ea-icon-sprout';
+'ea-icon-sprout',
+'ea-icon-germinate',
+'ea-icon-leaf',
+'ea-icon-seed',
+'ea-icon-compost',
+'ea-icon-player-both',
+'ea-icon-player-left',
+'ea-icon-player-one',
+'ea-icon-player-others',
+'ea-icon-sprout-additional';
 $icon-counter: -1;
 
 @each $icon-name in $icon-name-list {
@@ -1489,6 +1689,12 @@ $icon-counter: -1;
         .standard_popin & {
             display: inline-block;
             background-position-x: calc(0px * var(--ea-zoom));
+        }
+
+        .ea-objective-detail-progress & {
+            display: inline-block;
+            background-position-x: calc(0px * var(--ea-zoom));
+            --ea-zoom: 0.3;
         }
 
         .ea-card-container &,
@@ -1608,6 +1814,46 @@ $main-action-color-3: #dcc84f;
     color: black;
 }
 
+// Ability color bubbles
+.ea-ability-color {
+    display: inline-block;
+    vertical-align: middle;
+    min-width: 20px;
+    min-height: 12px;
+    margin-left: 0.1rem;
+    border: 2px black solid;
+    border-radius: 5px;
+    padding: 2.5px;
+    color: white;
+    border: 2px white solid;
+}
+
+.ea-ability-color.ea-ability-color-1 {
+    background-color: $main-action-color-1;
+}
+
+.ea-ability-color.ea-ability-color-2 {
+    background-color: $main-action-color-3;
+    color: black;
+}
+
+.ea-ability-color.ea-ability-color-4 {
+    background-color: $main-action-color-2;
+    color: black;
+}
+
+.ea-ability-color.ea-ability-color-8 {
+    background-color: $main-action-color-0;
+}
+
+.ea-ability-color.ea-ability-color-16 {
+    background-color: #88754c;
+}
+
+.ea-ability-color.ea-ability-color-32 {
+    background-color: black;
+}
+
 // Scorepad
 #ea-scorepad-container {
     display: flex;
@@ -1712,6 +1958,18 @@ $main-action-color-3: #dcc84f;
 
 .ea-player-panel-tableau-overview {
     position: relative;
+    margin-right: 3px;
+}
+
+.ea-player-panel-island-climate-overview {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+
+    .ea-mini-card {
+        position: relative;
+    }
 }
 
 .ea-mini-card {
@@ -1803,6 +2061,10 @@ $main-action-color-3: #dcc84f;
     height: calc(293px * 0.9 * var(--ea-zoom));
     transition: opacity 0.5s;
 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     #player_boards & {
         --ea-zoom: 0.2;
     }
@@ -1868,7 +2130,8 @@ $main-action-color-3: #dcc84f;
     }
 
     #ea-area-card-hand &,
-    .ea-area-player-tableau & {
+    .ea-area-player-tableau &,
+    #ea-area-card-end-turn-container & {
         background-color: #ffffff80;
     }
 
@@ -2531,6 +2794,26 @@ $main-action-color-3: #dcc84f;
 .ea-colorblind-yellow {
     background-image: url('img/colorblind/yellow.png');
     pointer-events: none;
+}
+
+// Germinate dialog
+#popin_ea-germinate-dialog_contents {
+    .ea-germinate-buttons {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+
+        .bgabutton {
+            display: inline-block;
+            max-width: fit-content;
+            margin: 15px;
+
+            div {
+                display: inline-block;
+                vertical-align: middle;
+            }
+        }
+    }
 }
 
 // Birds

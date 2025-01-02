@@ -694,24 +694,28 @@ trait CardDefMgrEarth
                 ->wet()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_MORE_PIECES, 5, ABILITY_GROWTH, 4])
                     ->desc(clienttranslate('Score 5 points per Flora with 4+ growth'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_GROWTH)
                 ->build(),
             (new CardDefBuilder())->terrainId(120)->name(clienttranslate("Jungle Terrain"))
                 ->soil(9)->score(0)
                 ->sunny()->wet()->rocky()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_MORE_PIECES, 2, ABILITY_SPROUT, 4])
                     ->desc(clienttranslate('Score 2 points per Flora with 4+ sprouts'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_SPROUT)
                 ->build(),
             (new CardDefBuilder())->terrainId(121)->name(clienttranslate("Redwood Forest Terrain"))
                 ->soil(11)->score(0)
                 ->wet()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_MORE_PIECES, 2, ABILITY_GROWTH, 2])
                     ->desc(clienttranslate('Score 2 points per Flora with 2+ growth'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_GROWTH)
                 ->build(),
             (new CardDefBuilder())->terrainId(122)->name(clienttranslate("Rain Forest Terrain"))
                 ->soil(14)->score(0)
                 ->sunny()->wet()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_MORE_PIECES, 2, ABILITY_SPROUT, 2])
                     ->desc(clienttranslate('Score 2 points per Flora with 2+ sprouts'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_SPROUT)
                 ->build(),
             (new CardDefBuilder())->terrainId(123)->name(clienttranslate("Savanna Terrain"))
                 ->soil(9)->score(0)
@@ -742,12 +746,14 @@ trait CardDefMgrEarth
                 ->sunny()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_LESS_COST, 1, 3])
                     ->desc(clienttranslate('Score 1 point per card costing 3 soil or less'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_SOIL)
                 ->build(),
             (new CardDefBuilder())->terrainId(127)->name(clienttranslate("Fertile Land Terrain"))
                 ->soil(9)->score(0)
                 ->sunny()->wet()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_WITH_MORE_COST, 2, 4])
                     ->desc(clienttranslate('Score 2 points per card costing 4 soil or more'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_SOIL)
                 ->build(),
             (new CardDefBuilder())->terrainId(128)->name(clienttranslate("Blossoming Lands Terrain"))
                 ->soil(15)->score(4)
@@ -954,6 +960,7 @@ trait CardDefMgrEarth
                 ->sunny()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_REMAINING_SOIL, 2, 30])
                     ->desc(clienttranslate('Score 2 points per soil in reserve (maximum 30 points)'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_SOIL)
                 ->build(),
             (new CardDefBuilder())->terrainId(166)->name(clienttranslate("Blooming Land Terrain"))
                 ->soil(12)->score(1)
@@ -966,6 +973,7 @@ trait CardDefMgrEarth
                 ->wet()->rocky()->cold()
                 ->ability((new AbilityBuilder())->brown()->scores([AB_SCORE_CARD_IN_COMPOST, 1, 30])
                     ->desc(clienttranslate('Score 1 point per card in compost (maximum 30 points)'))->build())
+                ->germinate(GERMINATE_CARD_ABILITY_ICON_COMPOST)
                 ->build(),
             (new CardDefBuilder())->mushroomId(168)->name(clienttranslate("Red-Caped Scaber Stalk"), "Leccinum aurantiacum")
                 ->soil(2)->score(1)

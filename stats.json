@@ -187,6 +187,36 @@
             "name": "Nb Growth discarded (paid) in total",
             "type": "int"
         },
+        "STATS_PLAYER_NB_GAINED_SEEDS_TOTAL": {
+            "id": 60,
+            "name": "Nb Seeds gained in total (Abundance)",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_LEAFS_CONVERTED_TOTAL": {
+            "id": 61,
+            "name": "Nb Leafs converted to Seeds in total (Abundance)",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_GERMINATE_TOTAL": {
+            "id": 62,
+            "name": "Nb Germinate action in total (Abundance)",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_PLACED_ON_BOARD_BY_PLAYER": {
+            "id": 63,
+            "name": "Nb Sprouts placed on board by the player (Abundance)",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_PLACED_ON_BOARD_BY_OTHERS": {
+            "id": 64,
+            "name": "Nb Sprouts placed on board by the other players (Abundance)",
+            "type": "int"
+        },
+        "STATS_PLAYER_NB_SPROUTS_PLACED_FROM_BOARD": {
+            "id": 65,
+            "name": "Nb Sprouts placed in Tableau from the board (Abundance)",
+            "type": "int"
+        },
         "STATS_PLAYER_GAIA_VP_TOTAL": {
             "id": 33,
             "name": "Solo: Gaia VP Total",

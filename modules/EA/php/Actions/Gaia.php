@@ -115,9 +115,10 @@ class CompostFromDeckSoil extends CompostFromDeckBase
     }
 }
 
-class PlaceSprout extends \BX\Action\BaseActionCommandNoUndo
+class PlaceSprout extends \BX\Action\BaseActionCommand
 {
     private $nbSprout;
+    private $undoCount;
 
     public function __construct(int $playerId, int $nbSprout)
     {
@@ -132,6 +133,9 @@ class PlaceSprout extends \BX\Action\BaseActionCommandNoUndo
         }
 
         $gameStateMgr = self::getMgr('game_state');
+
+        $this->undoCount = \BX\Meta\deepClone($gameStateMgr->getGaiaCount());
+
         $gameStateMgr->modifyGaiaSprout($this->nbSprout);
         $notifier->notify(
             NTF_UPDATE_GAIA,
@@ -139,11 +143,25 @@ class PlaceSprout extends \BX\Action\BaseActionCommandNoUndo
             [
                 'nbSprout' => $this->nbSprout,
                 'sproutIcon' => clienttranslate('sprout(s)'),
-                'gaiaCount' => self::getMgr('game_state')->getGaiaCount(),
+                'gaiaCount' => $gameStateMgr->getGaiaCount(),
                 'gaiaTableauCards' => null,
                 'gaiaDiscardCards' => null,
             ]
         );
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        if ($this->undoCount !== null) {
+            $notifier->notifyNoMessage(
+                NTF_UPDATE_GAIA,
+                [
+                    'gaiaCount' => $this->undoCount,
+                    'gaiaTableauCards' => null,
+                    'gaiaDiscardCards' => null,
+                ]
+            );
+        }
     }
 }
 

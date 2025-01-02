@@ -47,6 +47,7 @@ class GlobalMgr
     private function __construct()
     {
         $this->db = \BX\DB\RowMgrRegister::newMgr('global', GlobalRow::class);
+        $this->db->setUseCache(false);
     }
 
     static private function getInstance()
@@ -74,5 +75,15 @@ class GlobalMgr
     static public function getCurrentMoveNumber()
     {
         return self::getNextMoveNumber() - 1;
+    }
+
+    static public function isGameRealTime()
+    {
+        return (self::getGlobal(GLOBAL_REFLEXTION_TIME_PROFILE) <= 9);
+    }
+
+    static public function isGameTurnBased()
+    {
+        return !self::isGameRealTime();
     }
 }

@@ -46,6 +46,7 @@ define([
     g_gamethemeurl + "modules/EA/js/States/ActivationTrait.js",
     g_gamethemeurl + "modules/EA/js/States/EventTrait.js",
     g_gamethemeurl + "modules/EA/js/States/ConversionTrait.js",
+    g_gamethemeurl + "modules/EA/js/States/EndTurnTrait.js",
     g_gamethemeurl + "modules/EA/js/States/ConfirmTrait.js",
     g_gamethemeurl + "modules/EA/js/NotificationTrait.js",
 ],
@@ -59,6 +60,7 @@ define([
             ea.ActivationTrait,
             ea.EventTrait,
             ea.ConversionTrait,
+            ea.EndTurnTrait,
             ea.ConfirmTrait,
             ea.NotificationTrait,
         ], {
@@ -78,6 +80,7 @@ define([
             CARD_LOCATION_GAIA_TABLEAU: 10,
             CARD_LOCATION_GAIA_COMPOST: 11,
             CARD_LOCATION_GAIA_DISCARD: 12,
+            CARD_LOCATION_END_TURN: 13,
 
             CARD_TYPE_TREE: 1,
             CARD_TYPE_HERB: 2,
@@ -96,6 +99,8 @@ define([
             LEAF_LOCATION_ID_ACTION: 1,
             LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA: 2,
             LEAF_LOCATION_ID_FAUNA_BOARD_TABLEAU_BONUS: 3,
+            LEAF_LOCATION_ID_DICARD: 4,
+            LEAF_LOCATION_ID_GAIA_ABUNDANCE: 5,
 
             MAIN_ACTION_ID_PLANT: 0,
             MAIN_ACTION_ID_COMPOST: 1,
@@ -112,6 +117,10 @@ define([
             ABILITY_PLANT_PAY_WITH_COMPOST: 9,
             ABILITY_PLANT_PAY_WITH_SPROUT: 10,
             ABILITY_PLANT_PAY_WITH_GROWTH: 11,
+            ABILITY_GERMINATE: 19,
+            ABILITY_SEED: 20,
+            ABILITY_SPROUT_ALL_OTHERS: 21,
+            ABILITY_SPROUT_CHOOSE_ONE: 22,
 
             AB_COLOR_RED: 1,
             AB_COLOR_YELLOW: 2,
@@ -120,6 +129,8 @@ define([
             AB_COLOR_GREEN: 8,
             AB_COLOR_BROWN: 16,
             AB_COLOR_BLACK: 32,
+
+            AB_COND_PER_NEIGHBOUR: 8,
 
             GAIA_PLAYER_ID: 1,
 
@@ -158,8 +169,12 @@ define([
             EA_PREF_WELCOME_ID: 'EA_PREF_WELCOME_ID',
             EA_PREF_WELCOME_DEFAULT_VALUE: true,
 
+            EA_PREF_FAST_NOTIF_ID: 'EA_PREF_FAST_NOTIF_ID',
+            EA_PREF_FAST_NOTIF_DEFAULT_VALUE: true,
+
             constructor() {
                 this.setAlwaysFixTopActions();
+                this.allowUndoButtonForInactivePlayers();
                 this.counters = {};
 
                 this.playerPanelMgr = new ea.PlayerPanelMgr();
@@ -186,21 +201,29 @@ define([
                 this.htmlTextForLogKeys.push('sproutIcon');
                 this.htmlTextForLogKeys.push('growthIcon');
                 this.htmlTextForLogKeys.push('soilIcon');
+                this.htmlTextForLogKeys.push('seedIcon');
+                this.htmlTextForLogKeys.push('germinateIcon');
+                this.htmlTextForLogKeys.push('leafIcon');
+                this.htmlTextForLogKeys.push('scoringIcon');
+                this.htmlTextForLogKeys.push('compostIcon');
                 this.htmlTextForLogKeys.push('plantIcon');
                 this.htmlTextForLogKeys.push('drawFromDeckIcon');
                 this.htmlTextForLogKeys.push('cardTypeEventIcon');
                 this.htmlTextForLogKeys.push('compostDestroyIcon');
+                this.htmlTextForLogKeys.push('otherPlayersIcon');
+                this.htmlTextForLogKeys.push('onePlayerIcon');
 
-                this.localPreferenceToRegister.push([this.EA_PREF_HAND_ZOOM_FACTOR_ID, this.EA_PREF_HAND_ZOOM_FACTOR_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_TABLEAU_ZOOM_FACTOR_ID, this.EA_PREF_TABLEAU_ZOOM_FACTOR_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_FAUNA_ZOOM_FACTOR_ID, this.EA_PREF_FAUNA_ZOOM_FACTOR_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_HAND_PLACEMENT_ID, this.EA_PREF_HAND_PLACEMENT_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_COMPACT_CARD_ID, this.EA_PREF_COMPACT_CARD_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_CARD_HELP_ID, this.EA_PREF_CARD_HELP_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_DARK_BACKGROUND_ID, this.EA_PREF_DARK_BACKGROUND_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_CONFIRM_TIMER_ID, this.EA_PREF_CONFIRM_TIMER_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_SHORTCUTS_ID, this.EA_PREF_SHORTCUTS_DEFAULT_VALUE, {}]);
-                this.localPreferenceToRegister.push([this.EA_PREF_WELCOME_ID, this.EA_PREF_WELCOME_DEFAULT_VALUE, {}]);
+                this.localPreferenceToRegister.push([this.EA_PREF_HAND_ZOOM_FACTOR_ID, this.EA_PREF_HAND_ZOOM_FACTOR_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_TABLEAU_ZOOM_FACTOR_ID, this.EA_PREF_TABLEAU_ZOOM_FACTOR_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_FAUNA_ZOOM_FACTOR_ID, this.EA_PREF_FAUNA_ZOOM_FACTOR_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_HAND_PLACEMENT_ID, this.EA_PREF_HAND_PLACEMENT_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_COMPACT_CARD_ID, this.EA_PREF_COMPACT_CARD_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_CARD_HELP_ID, this.EA_PREF_CARD_HELP_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_DARK_BACKGROUND_ID, this.EA_PREF_DARK_BACKGROUND_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_CONFIRM_TIMER_ID, this.EA_PREF_CONFIRM_TIMER_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_SHORTCUTS_ID, this.EA_PREF_SHORTCUTS_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_WELCOME_ID, this.EA_PREF_WELCOME_DEFAULT_VALUE]);
+                this.localPreferenceToRegister.push([this.EA_PREF_FAST_NOTIF_ID, this.EA_PREF_FAST_NOTIF_DEFAULT_VALUE]);
             },
 
             setup(gamedatas) {
@@ -273,6 +296,21 @@ define([
                 } else {
                     preloadImageArray.push('board/fauna.jpg');
                 }
+                if (this.isTrue(gamedatas.gameHasExpansionAbundance)) {
+                    preloadImageArray.push('board/fauna_abundance_11.jpg');
+                    preloadImageArray.push('board/player_bottom_abundance.jpg');
+                    preloadImageArray.push('card/abundance-climate-01.jpg');
+                    preloadImageArray.push('card/abundance-earth-01.jpg');
+                    preloadImageArray.push('card/abundance-earth-02.jpg');
+                    preloadImageArray.push('card/abundance-earth-03.jpg');
+                    preloadImageArray.push('card/abundance-ecosystem-01.jpg');
+                    preloadImageArray.push('card/abundance-fauna-01.jpg');
+                    preloadImageArray.push('card/abundance-island-01.jpg');
+                    preloadImageArray.push('token/seed.png');
+                    if (this.isGameSolo()) {
+                        preloadImageArray.push('board/player_bottom_abundance_solo.jpg');
+                    }
+                }
                 this.ensureSpecificGameImageLoading(preloadImageArray);
 
                 for (const playerId in gamedatas.players) {
@@ -281,6 +319,8 @@ define([
                         soil: new bx.Numbers(),
                         compost: new bx.Numbers(),
                         event: new bx.Numbers(),
+                        seed: new bx.Numbers(),
+                        exchangeSprout: new bx.Numbers(),
                         sprout: new bx.Numbers([0, 0]),
                         growth: new bx.Numbers([0, 0]),
                         cardTree: new bx.Numbers(),
@@ -293,6 +333,7 @@ define([
                         habitatWet: new bx.Numbers(),
                         habitatRocky: new bx.Numbers(),
                         habitatCold: new bx.Numbers(),
+                        abilityNeighbour: new bx.Numbers(),
                         fauna: new bx.Numbers([0, 4]),
                     };
                 }
@@ -392,6 +433,10 @@ define([
                         const welcomeCheckbox = document.getElementById('ea-welcome-checkbox');
                         welcomeCheckbox.checked = value;
                         break;
+                    case this.EA_PREF_FAST_NOTIF_ID:
+                        const fastNotifCheckbox = document.getElementById('ea-fast-notif-checkbox');
+                        fastNotifCheckbox.checked = value;
+                        break;
                 }
             },
 
@@ -427,6 +472,21 @@ define([
                     case 'soilIcon': {
                         return '<div class="ea-icon-soil"></div>';
                     }
+                    case 'seedIcon': {
+                        return '<div class="ea-icon-seed"></div>';
+                    }
+                    case 'germinateIcon': {
+                        return '<div class="ea-icon-germinate"></div>';
+                    }
+                    case 'leafIcon': {
+                        return '<div class="ea-icon-leaf"></div>';
+                    }
+                    case 'scoringIcon': {
+                        return '<div class="ea-icon-scoring"></div>';
+                    }
+                    case 'compostIcon': {
+                        return '<div class="ea-icon-compost"></div>';
+                    }
                     case 'plantIcon': {
                         return '<div class="ea-icon-plant"></div>';
                     }
@@ -439,26 +499,21 @@ define([
                     case 'compostDestroyIcon': {
                         return '<div class="ea-icon-compost-destroy"></div>';
                     }
+                    case 'otherPlayersIcon': {
+                        return '<div class="ea-icon-player-others"></div>';
+                    }
+                    case 'onePlayerIcon': {
+                        return '<div class="ea-icon-player-one"></div>';
+                    }
                 }
                 return this.inherited(arguments);
-            },
-
-            onStateChangedBefore(stateName, args) {
-                this.inherited(arguments);
             },
 
             onStateChangedAfter(stateName, args) {
                 this.inherited(arguments);
             },
 
-            onUpdateActionButtonsBefore(stateName, args) {
-                this.inherited(arguments);
-                this.removeAllClickable();
-                this.removeAllSelected();
-                this.cardMgr.hideAllCardCost();
-            },
-
-            onUpdateActionButtonsdAfter(stateName, args) {
+            onStateChangedAfter(stateName, args) {
                 this.addTopPlayEventButton(args);
                 this.addTopPlayConversionButton(args);
                 this.addTopUndoButton(args);
@@ -466,37 +521,14 @@ define([
                 this.inherited(arguments);
             },
 
-            onUndoBegin() {
-                this.inherited(arguments);
-                this.removeAllClickable();
-                this.removeAllSelected();
-                this.clearSelectedBeforeRemoveAll();
-                this.clearTopButtonTimer();
+            clearActionState() {
+                this.cardMgr.hideAllCardCost();
                 this.tableauMgr.disablePlacementMode();
                 this.gainMgr.stop();
                 this.paymentMgr.stop();
-            },
-
-            onLeavingState(stateName) {
-                this.inherited(arguments);
-                this.removeAllClickable();
-                this.removeAllSelected();
-                this.clearSelectedBeforeRemoveAll();
-                this.clearTopButtonTimer();
-                this.tableauMgr.disablePlacementMode();
-                this.gainMgr.stop();
-                this.paymentMgr.stop();
-            },
-
-            onLoadingComplete() {
-                this.inherited(arguments);
-                this.showWelcomeMessage();
             },
 
             showWelcomeMessage() {
-                if (this.isReadOnly()) {
-                    return;
-                }
                 if (!this.getLocalPreference(this.EA_PREF_WELCOME_ID)) {
                     return;
                 }
@@ -588,9 +620,14 @@ define([
                 return element;
             },
 
+            createSeedTokenElement() {
+                const element = document.createElement('div');
+                element.classList.add('ea-token-seed');
+                return element;
+            },
+
             createSproutElement() {
-                const sproutElement = document.createElement('div');
-                sproutElement.classList.add('ea-token-sprout');
+                const sproutElement = this.createSproutNoShadowElement();
 
                 const shadowElement = document.createElement('div');
                 shadowElement.classList.add('ea-token-sprout-shadow');
@@ -601,6 +638,12 @@ define([
                 containerElement.appendChild(shadowElement);
 
                 return containerElement;
+            },
+
+            createSproutNoShadowElement() {
+                const sproutElement = document.createElement('div');
+                sproutElement.classList.add('ea-token-sprout');
+                return sproutElement;
             },
 
             animateSproutElement(sproutElem, appear, isInstantaneous) {
@@ -656,37 +699,7 @@ define([
             },
 
             animateGrowthElement(growthElem, appear, isInstantaneous) {
-                if (isInstantaneous) {
-                    return Promise.resolve();
-                }
-                return new Promise((resolve, reject) => {
-                    let animElem = growthElem.querySelector('.ea-token-trunk');
-                    if (animElem === null) {
-                        animElem = growthElem.querySelector('.ea-token-canopy');
-                    }
-                    const overScaleAnim = new dojo.Animation({
-                        curve: appear ? [0.0, 1.5] : [1, 1.5],
-                        duration: 200,
-                        onAnimate: (v) => {
-                            animElem.style.transform = 'scale(' + v + ')';
-                        },
-                        onEnd: () => {
-                            const reScaleAnim = new dojo.Animation({
-                                curve: appear ? [1.5, 1] : [1.5, 0],
-                                duration: 200,
-                                onAnimate: (v) => {
-                                    animElem.style.transform = 'scale(' + v + ')';
-                                },
-                                onEnd: () => {
-                                    animElem.style.transform = '';
-                                    resolve();
-                                },
-                            });
-                            reScaleAnim.play();
-                        },
-                    });
-                    overScaleAnim.play();
-                });
+                return this.animateOverScaleElement(growthElem, appear, isInstantaneous);
             },
         });
     });

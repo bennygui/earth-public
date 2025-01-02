@@ -109,8 +109,8 @@ class action_earth extends APP_GameAction
   {
     self::setAjaxMode();
 
-    $cardId = $this->getArg("cardId", AT_posint, true);
-    $this->game->planActionKeepOneDrawnCard($cardId);
+    $cardIds = explode(',', $this->getArg("cardIds", AT_numberlist, true));
+    $this->game->planActionKeepOneDrawnCard($cardIds);
 
     self::ajaxResponse();
   }
@@ -268,8 +268,9 @@ class action_earth extends APP_GameAction
     if (count($selectedHandChoosingCardIds) > 0) {
       throw new \BgaSystemException('BUG! Cannot select hand choosing in this action');
     }
+    $gainedSproutChooseOnePlayerId = $this->getArg("gainedSproutChooseOnePlayerId", AT_posint, false);
 
-    $this->game->activationGain($placedSproutList, $placedGrowthList, $selectedCompostFromHandCardIds);
+    $this->game->activationGain($placedSproutList, $placedGrowthList, $selectedCompostFromHandCardIds, $gainedSproutChooseOnePlayerId);
 
     self::ajaxResponse();
   }
@@ -357,6 +358,89 @@ class action_earth extends APP_GameAction
     self::ajaxResponse();
   }
 
+  public function convertUseSeed()
+  {
+    self::setAjaxMode();
+
+    $this->game->convertUseSeed();
+
+    self::ajaxResponse();
+  }
+
+  public function convertCreateSeed()
+  {
+    self::setAjaxMode();
+
+    $this->game->convertCreateSeed();
+
+    self::ajaxResponse();
+  }
+
+  public function convertSelectUseSeed()
+  {
+    self::setAjaxMode();
+
+    $abilityId = $this->getArg("abilityId", AT_posint, true);
+    $this->game->convertSelectUseSeed($abilityId);
+
+    self::ajaxResponse();
+  }
+
+  public function convertSelectUseSeedGain()
+  {
+    self::setAjaxMode();
+
+    $placedSproutList = null;
+    $placedGrowthList = null;
+    $selectedCompostFromHandCardIds = null;
+    $selectedHandChoosingCardIds = null;
+    $this->parseGainArgs($placedSproutList, $placedGrowthList, $selectedCompostFromHandCardIds, $selectedHandChoosingCardIds);
+    if (count($selectedHandChoosingCardIds) > 0) {
+      throw new \BgaSystemException('BUG! Cannot select hand choosing in this action');
+    }
+
+    $this->game->convertSelectUseSeedGain($placedSproutList, $placedGrowthList, $selectedCompostFromHandCardIds);
+
+    self::ajaxResponse();
+  }
+
+  public function convertSelectUseSeedGerminate()
+  {
+    self::setAjaxMode();
+
+    $germinateId = $this->getArg("germinateId", AT_posint, true);
+    $this->game->convertSelectUseSeedGerminate($germinateId);
+
+    self::ajaxResponse();
+  }
+
+  public function convertSelectCreateSeedFromSprouts()
+  {
+    self::setAjaxMode();
+
+    $payedSproutList = null;
+    $payedGrowthList = null;
+    $payedCompostFromHandCardIds = null;
+    $this->parsePayArgs($payedSproutList, $payedGrowthList, $payedCompostFromHandCardIds);
+    if (count($payedGrowthList) > 0 || count($payedCompostFromHandCardIds) > 0) {
+      throw new \BgaSystemException('BUG! Can only convert sprouts');
+    }
+
+    $this->game->convertSelectCreateSeedFromSprouts($payedSproutList);
+
+    self::ajaxResponse();
+  }
+
+  public function convertSelectCreateSeedFromLeaf()
+  {
+    self::setAjaxMode();
+
+    $tokenId = $this->getArg("tokenId", AT_posint, true);
+    $this->game->convertSelectCreateSeedFromLeaf($tokenId);
+
+    self::ajaxResponse();
+  }
+
   public function convertSelectPayment()
   {
     self::setAjaxMode();
@@ -374,11 +458,94 @@ class action_earth extends APP_GameAction
     self::ajaxResponse();
   }
 
+  public function endTurnPlaceExchangeSprout()
+  {
+    self::setAjaxMode();
+
+    $this->game->endTurnPlaceExchangeSprout();
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnPlaceExchangeSproutGain()
+  {
+    self::setAjaxMode();
+
+    $placedSproutList = null;
+    $placedGrowthList = null;
+    $selectedCompostFromHandCardIds = null;
+    $selectedHandChoosingCardIds = null;
+    $this->parseGainArgs($placedSproutList, $placedGrowthList, $selectedCompostFromHandCardIds, $selectedHandChoosingCardIds);
+    if (count($placedGrowthList) > 0 || count($selectedCompostFromHandCardIds) > 0 || count($selectedHandChoosingCardIds) > 0) {
+      throw new \BgaSystemException('BUG! Can only place sprouts in this action');
+    }
+
+    $this->game->endTurnPlaceExchangeSproutGain($placedSproutList);
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnPass()
+  {
+    self::setAjaxMode();
+
+    $this->game->endTurnPass();
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnPlayEndTurnEvent()
+  {
+    self::setAjaxMode();
+
+    $this->game->endTurnPlayEndTurnEvent();
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnChooseEndTurnEvent()
+  {
+    self::setAjaxMode();
+
+    $cardId = $this->getArg("cardId", AT_posint, true);
+
+    $this->game->endTurnChooseEndTurnEvent($cardId);
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnEventPass()
+  {
+    self::setAjaxMode();
+
+    $this->game->endTurnEventPass();
+
+    self::ajaxResponse();
+  }
+
+  public function endTurnEventActivate()
+  {
+    self::setAjaxMode();
+
+    $this->game->endTurnEventActivate();
+
+    self::ajaxResponse();
+  }
+
   public function confirmEndPhase()
   {
     self::setAjaxMode();
 
     $this->game->confirmEndPhase();
+
+    self::ajaxResponse();
+  }
+
+  public function confirmEndPhaseSkipEndOfTurn()
+  {
+    self::setAjaxMode();
+
+    $this->game->confirmEndPhaseSkipEndOfTurn();
 
     self::ajaxResponse();
   }

@@ -19,25 +19,25 @@ define([
         return declare("ea.EventTrait", null, {
             addTopPlayEventButton(args) {
                 let canPlayEvent = false;
-                if (args && args.canPlayEvent !== undefined && args.canPlayEvent !== null) {
-                    canPlayEvent = args.canPlayEvent;
-                } else if (args && args._private && args._private.canPlayEvent !== undefined && args._private.canPlayEvent !== null) {
-                    canPlayEvent = args._private.canPlayEvent;
+                if (args && args.args && args.args.canPlayEvent !== undefined && args.args.canPlayEvent !== null) {
+                    canPlayEvent = args.args.canPlayEvent;
+                } else if (args.args && args.args._private && args.args._private.canPlayEvent !== undefined && args.args._private.canPlayEvent !== null) {
+                    canPlayEvent = args.args._private.canPlayEvent;
                 }
                 if (canPlayEvent) {
                     this.addTopButtonSecondary(
                         'ea-button-play-event',
-                        this.format_string_recursive(_('Play Event ${cardTypeEventIcon}'), { cardTypeEventIcon: '' }),
+                        this.format_string_recursive(_('Event ${cardTypeEventIcon}'), { cardTypeEventIcon: '' }),
                         () => this.serverAction('eventPlay')
                     );
                 }
             },
 
-            onButtonsStateEventChooseCard(args) {
-                debug('onButtonsStateEventChooseCard');
+            onStateEventChooseCard(args) {
+                debug('onStateEventChooseCard');
                 debug(args);
 
-                for (const cardId of args.eventCardIds) {
+                for (const cardId of args.args.eventCardIds) {
                     const cardElem = this.cardMgr.getCardSelectionElementById(cardId);
                     gameui.addClickable(cardElem, () => {
                         this.serverAction('eventChooseCard', { cardId: cardId });
@@ -45,21 +45,21 @@ define([
                 }
             },
 
-            onButtonsStateEventSelectGain(args) {
-                debug('onButtonsStateEventSelectGain');
+            onStateEventSelectGain(args) {
+                debug('onStateEventSelectGain');
                 debug(args);
-                this.onAbilityGain('eventGain', args);
+                this.onAbilityGain('eventGain', args.args);
 
-                const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                 gameui.addSelected(cardElem);
             },
 
-            onButtonsStateEventSelectPayment(args) {
-                debug('onButtonsStateEventSelectPayment');
+            onStateEventSelectPayment(args) {
+                debug('onStateEventSelectPayment');
                 debug(args);
-                this.onAbilityPayment('eventPay', args);
+                this.onAbilityPayment('eventPay', args.args);
 
-                const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                 gameui.addSelected(cardElem);
             },
         });

@@ -22,6 +22,7 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
 
     private $cardIds;
     private $islandCardId;
+    private $climateCardId;
 
     public function __construct(int $playerId, array $cardIds)
     {
@@ -32,6 +33,11 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
     public function getIslandCardId()
     {
         return $this->islandCardId;
+    }
+
+    public function getClimateCardId()
+    {
+        return $this->climateCardId;
     }
 
     public function hasCardsToCompost()
@@ -85,6 +91,8 @@ class Choose extends \BX\Action\BaseActionCommandNoUndo
             unset($validCardTypes[$cardType]);
             if ($cardType == \EA\CARD_TYPE_ISLAND) {
                 $this->islandCardId = $cardId;
+            } else if ($cardType == \EA\CARD_TYPE_CLIMATE) {
+                $this->climateCardId = $cardId;
             }
             $card->modifyAction();
             $card->moveToPlayerBoard($this->playerId);

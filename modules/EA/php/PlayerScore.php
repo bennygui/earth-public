@@ -35,8 +35,10 @@ class PlayerScore extends \BX\Action\BaseActionRow
     public $scoreTypeId;
     /** @dbcol */
     public $score;
-    /** @dbcol @dboptional */
+    /** @dbcol */
     public $extraScore;
+    /** @dbcol @dboptional */
+    public $extraProgress;
 
     public function __construct()
     {
@@ -46,6 +48,7 @@ class PlayerScore extends \BX\Action\BaseActionRow
         $this->scoreTypeId = null;
         $this->score = null;
         $this->extraScore = null;
+        $this->extraProgress = null;
     }
 }
 
@@ -67,6 +70,9 @@ class PlayerScorepadUI
     public $scorePublicEcosystem2;
     public $scoreFauna;
     public $scoreTotal;
+    public $progressPlayerEcosystem;
+    public $progressPublicEcosystem1;
+    public $progressPublicEcosystem2;
 
     public function __construct(int $playerId)
     {
@@ -86,6 +92,9 @@ class PlayerScorepadUI
         $this->scorePublicEcosystem2 = 0;
         $this->scoreFauna = 0;
         $this->scoreTotal = 0;
+        $this->progressPlayerEcosystem = 0;
+        $this->progressPublicEcosystem1 = 0;
+        $this->progressPublicEcosystem2 = 0;
     }
 
     public function addTerrainScoreCardId(int $cardId, int $score)
@@ -152,6 +161,11 @@ class PlayerScoreMgr extends \BX\Action\BaseActionRowMgr
     {
         return $this->getAllRowsByKey();
     }
+    
+    public function deleteAllScoresNow()
+    {
+        $this->db->deleteAllRows();
+    }
 
     public function hasScore()
     {
@@ -213,10 +227,13 @@ class PlayerScoreMgr extends \BX\Action\BaseActionRowMgr
                         $index = array_search($score->cardId, $ecosystemCardIds);
                         if ($index === false) {
                             $pad->scorePlayerEcosystem += $score->score;
+                            $pad->progressPlayerEcosystem += $score->extraProgress;
                         } else if ($index === 0) {
                             $pad->scorePublicEcosystem1 += $score->score;
+                            $pad->progressPublicEcosystem1 += $score->extraProgress;
                         } else {
                             $pad->scorePublicEcosystem2 += $score->score;
+                            $pad->progressPublicEcosystem2 += $score->extraProgress;
                         }
                         break;
                     case SCORE_TYPE_ID_FAUNA:

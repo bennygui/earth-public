@@ -182,27 +182,35 @@ class PlantKeepCard extends \BX\Action\BaseActionCommandNoUndo
 {
     use \EA\Actions\Traits\CardQueryTrait;
 
-    private $cardId;
+    private $cardIds;
 
-    public function __construct(int $playerId, int $cardId)
+    public function __construct(int $playerId, array $cardIds)
     {
         parent::__construct($playerId);
-        $this->cardId = $cardId;
+        $this->cardIds = $cardIds;
     }
 
     public function do(\BX\Action\BaseActionCommandNotifier $notifier)
     {
+        $cardMgr = self::getMgr('card');
+        $nbCards = $cardMgr->getPlayerNbPlantActionKeepCard($this->playerId);
+        if (count($this->cardIds) != $nbCards) {
+            throw new \BgaSystemException("BUG! Player did not keep $nbCards cards");
+        }
         $notifier->notify(
             \BX\Action\NTF_MESSAGE,
-            clienttranslate('${player_name} keeps one of the 4 drawn cards'),
-            []
+            clienttranslate('${player_name} keeps ${nbCards} of the 4 drawn cards'),
+            [
+                'nbCards' => $nbCards,
+            ]
         );
 
+        foreach ($this->cardIds as $cardId) {
+            $card = $this->cardFromHand($cardId);
+            $card->modifyAction();
+            $card->moveToPlayerHand($this->playerId);
+        }
         $isSolo = isGameSolo();
-        $card = $this->cardFromHand($this->cardId);
-        $card->modifyAction();
-        $card->moveToPlayerHand($this->playerId);
-        $cardMgr = self::getMgr('card');
         $discardCards = [];
         foreach ($cardMgr->getPlayerHandChoosingCards($this->playerId) as $card) {
             $card->modifyAction();

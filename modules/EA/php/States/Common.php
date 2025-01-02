@@ -32,8 +32,10 @@ trait GameStatesTrait
         return \BX\MultiActiveState\argsMultiActive($playerId, function ($playerId) {
             $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
             return $this->argsMergeEarthBasic([
-                'canPlayEvent' => $cardMgr->playerHasEventInHand($playerId),
+                'canPlayEvent' => $cardMgr->playerHasAnytimeEventInHand($playerId),
                 'canPlayConversion' => $cardMgr->playerCanPlayConversion($playerId),
+                'canUseSeed' => $this->playerCanUseSeed($playerId),
+                'canCreateSeed' => $this->playerCanCreateSeed($playerId),
             ]);
         });
     }
@@ -44,8 +46,10 @@ trait GameStatesTrait
         return $this->argsMergeEarthBasic(
             array_merge(
                 [
-                    'canPlayEvent' => $cardMgr->playerHasEventInHand($playerId),
+                    'canPlayEvent' => $cardMgr->playerHasAnytimeEventInHand($playerId),
                     'canPlayConversion' => $cardMgr->playerCanPlayConversion($playerId),
+                    'canUseSeed' => $this->playerCanUseSeed($playerId),
+                    'canCreateSeed' => $this->playerCanCreateSeed($playerId),
                 ],
                 $ret
             )
@@ -152,9 +156,11 @@ trait GameStatesTrait
         } else {
             $canUndo = (!$creator->willCommit());
         }
-        $canPlayEvent = $cardMgr->playerHasEventInHand($playerId);
+        $canPlayEvent = $cardMgr->playerHasAnytimeEventInHand($playerId);
         $canPlayConversion = $cardMgr->playerCanPlayConversion($playerId);
-        return ($canUndo || $canPlayEvent || $canPlayConversion);
+        $canUseSeed = $this->playerCanUseSeed($playerId);
+        $canCreateSeed = $this->playerCanCreateSeed($playerId);
+        return ($canUndo || $canPlayEvent || $canPlayConversion || $canUseSeed || $canCreateSeed);
     }
 
     private function addNextConfirmEndPhaseOrExit(int $playerId, \BX\Action\ActionCommandCreatorInterface $creator)
@@ -163,6 +169,26 @@ trait GameStatesTrait
             $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'confirmEndPhase'));
         } else {
             $creator->add(new \BX\MultiActiveState\ExitPrivateStateActionCommand($playerId));
+        }
+    }
+
+
+    private function addMainActionMoveToActivation(int $playerId, \BX\Action\ActionCommandCreatorInterface $creator)
+    {
+        if (!gameVersionHasFalltroughActivation()) {
+            $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+            return;
+        }
+        if (\EA\Actions\Activation\MarkActivatingNextCard::playerHasActivatableCards($playerId)) {
+            if (\EA\Actions\Activation\MarkActivatingNextCard::playerMustChooseDirection($playerId)) {
+                $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'activationChooseBoardOrTableau'));
+            } else {
+                $creator->add(new \EA\Actions\Activation\ChooseBoardOrTableau($playerId, \EA\ACTIVATION_DIRECTION_ISLAND_CLIMATE_TABLEAU, false));
+                $creator->add(new \EA\Actions\Activation\MarkActivatingNextCard($playerId));
+                $creator->add(new \BX\MultiActiveState\NextPrivateStateActionCommand($playerId, 'activationActivateOrSkip'));
+            }
+        } else {
+            $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
         }
     }
 
@@ -205,12 +231,28 @@ trait GameStatesTrait
                 return $count;
             }
             return $count * $this->countPlayerTableauCardsConditionDirection($beforeCopyCardId, $creator, $ability);
+        } else if ($ability->hasConditionPerNeighbour()) {
+            $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
+            $divisor = $ability->getConditionPerNeighbourDivisor();
+            $neighbourPlayerIds = $this->neighbourPlayerIds($creator->getPlayerId());
+            $neighbourCount = 0;
+            foreach ($neighbourPlayerIds as $npId) {
+                if ($ability->getPerTypeCondition() == \EA\CARD_TYPE_EVENT) {
+                    $neighbourCount = max($neighbourCount, count($cardMgr->getPlayerBoardEventCards($npId)));
+                } else {
+                    $neighbourCount = max($neighbourCount, $this->countIslandClimateTableauCardsRespectingCondition($npId, $ability));
+                }
+            }
+            return $count * intdiv($neighbourCount, $divisor);
+        } else if ($ability->isCountForAllCards()) {
+            return $count * $this->countIslandClimateTableauCardsRespectingCondition($creator->getPlayerId(), $ability);
         } else {
             $ability->foreachCondition(function ($conditionId, $conditionType) use (&$count, $creator, $ability) {
                 switch ($conditionId) {
                     case \EA\AB_COND_PER_TYPE:
                     case \EA\AB_COND_PER_HABITAT:
                     case \EA\AB_COND_PER_COLOR:
+                    case \EA\AB_COND_PER_GERMINATE:
                         $count = $count * $this->countPlantedCardsRespectingCondition($creator->getPlayerId(), $ability);
                         break;
                 }
@@ -233,6 +275,28 @@ trait GameStatesTrait
                     break;
                 case \EA\ABILITY_COMPOST_FROM_DECK:
                     $creator->add(new \EA\Actions\Ability\CompostFromDeck($creator->getPlayerId(), $count));
+                    break;
+                case \EA\ABILITY_SEED:
+                    $creator->add(new \EA\Actions\Ability\GainSeed($creator->getPlayerId(), $count, $cardId));
+                    break;
+                case \EA\ABILITY_SPROUT_ALL_OTHERS:
+                    if ($this->getPlayerCount() == 1) {
+                        $creator->add(new \EA\Actions\Gaia\PlaceSprout($creator->getPlayerId(), $count));
+                    } else {
+                        $creator->add(new \EA\Actions\Ability\SproutAllOthers($creator->getPlayerId(), $count, $cardId));
+                    }
+                    break;
+                case \EA\ABILITY_SPROUT_CHOOSE_ONE:
+                    if ($this->getPlayerCount() == 1) {
+                        $creator->add(new \EA\Actions\Gaia\PlaceSprout($creator->getPlayerId(), $count));
+                    } else if ($this->getPlayerCount() == 2) {
+                        $creator->add(new \EA\Actions\Ability\SproutChooseOne(
+                            $creator->getPlayerId(),
+                            $this->otherPlayerId($creator->getPlayerId()),
+                            $count,
+                            $cardId
+                        ));
+                    }
                     break;
             }
         });
@@ -260,6 +324,11 @@ trait GameStatesTrait
                 case \EA\ABILITY_COMPOST_FROM_HAND:
                     $creator->add(new \EA\Actions\Ability\GainCompostFromHand($creator->getPlayerId(), $count));
                     break;
+                case \EA\ABILITY_SPROUT_CHOOSE_ONE:
+                    if ($this->getPlayerCount() > 2) {
+                        $creator->add(new \EA\Actions\Ability\GainSproutChooseOne($creator->getPlayerId(), $count));
+                    }
+                    break;
             }
         });
     }
@@ -280,12 +349,25 @@ trait GameStatesTrait
 
     private function countPlantedCardsRespectingCondition(int $playerId, \EA\Ability $ability)
     {
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+        $cardIds = $playerStateMgr->playerPlantedCardIds($playerId);
+        return $this->countCardsRespectingCondition($cardIds, $ability);
+    }
+
+    private function countIslandClimateTableauCardsRespectingCondition(int $playerId, \EA\Ability $ability)
+    {
+        $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
+        $cardIds = array_map(fn ($c) => $c->cardId, $cardMgr->getPlayerIslandClimateTableauCards($playerId, $playerId));
+        return $this->countCardsRespectingCondition($cardIds, $ability);
+    }
+
+    private function countCardsRespectingCondition(array $cardIds, \EA\Ability $ability)
+    {
         if (!$ability->hasCondition()) {
             throw new \BgaSystemException('BUG! Should not be called, ability has no condition');
         }
         $count = 0;
-        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
-        foreach ($playerStateMgr->playerPlantedCardIds($playerId) as $cardId) {
+        foreach ($cardIds as $cardId) {
             $cardDef = \EA\CardDefMgr::getByCardId($cardId);
             $ability->foreachCondition(function ($conditionId, $conditionType) use (&$count, $cardDef) {
                 switch ($conditionId) {
@@ -300,9 +382,23 @@ trait GameStatesTrait
                         }
                         break;
                     case \EA\AB_COND_PER_COLOR:
-                        if ($cardDef->hasAbilityMatchingColor($conditionType)) {
+                        if ($conditionType == \EA\AB_COLOR_MULTICOLOR) {
+                            if ($cardDef->getAbilityForColor($conditionType)) {
+                                $count += 1;
+                            }
+                        } else {
+                            if ($cardDef->hasAbilityMatchingColor($conditionType)) {
+                                $count += 1;
+                            }
+                        }
+                        break;
+                    case \EA\AB_COND_PER_GERMINATE:
+                        $filter = \EA\CardDef::germinateIdToFilter($conditionType);
+                        if ($filter($cardDef)) {
                             $count += 1;
                         }
+                        break;
+                    case \EA\AB_COND_PER_NEIGHBOUR:
                         break;
                     default:
                         throw new \BgaSystemException('BUG! Should not be called for unsupported condition');
@@ -325,6 +421,10 @@ trait GameStatesTrait
                 break;
             case \EA\AB_DIRECTION_ROW:
                 $cards = $cardMgr->getPlayerTableauCardsInCardRow($creator->getPlayerId(), $cardId);
+                break;
+            case \EA\AB_DIRECTION_DIAG_ADJACENT:
+                $cards = $cardMgr->getPlayerTableauCardsInCardDiagAdjacent($creator->getPlayerId(), $cardId);
+                $cards[] = $cardMgr->getCardById($cardId);
                 break;
             default:
                 throw new \BgaSystemException('BUG! Unknown direction');
@@ -366,6 +466,111 @@ trait GameStatesTrait
                 NTF_UPDATE_LEAF_TOKEN,
                 [
                     'leafToken' => $leafToken->toPlayerUI($leafToken->playerId),
+                ]
+            );
+        }
+    }
+
+    private function playerCanUseSeed(int $playerId)
+    {
+        if (!gameHasExpansionAbundance()) {
+            return false;
+        }
+
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+        return ($playerStateMgr->getPlayerSeedCount($playerId) > 0);
+    }
+
+    private function playerCanCreateSeed(int $playerId)
+    {
+        if (!gameHasExpansionAbundance()) {
+            return false;
+        }
+
+        $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
+        if ($cardMgr->getPlayerSproutCount($playerId) >= 4) {
+            return true;
+        }
+
+        $leafTokenMgr = \BX\Action\ActionRowMgrRegister::getMgr('leaf_token');
+        if (count($leafTokenMgr->getDiscardableLeafInOrder($playerId)) > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function otherPlayerId(int $playerId)
+    {
+        $playerIdArray = $this->getPlayerIdArray();
+        if (count($playerIdArray) != 2) {
+            throw new \BgaSystemException('BUG! otherPlayer called but not a 2 player game');
+        }
+        foreach ($playerIdArray as $otherPlayerId) {
+            if ($otherPlayerId != $playerId) {
+                return $otherPlayerId;
+            }
+        }
+        throw new \BgaSystemException('BUG! otherPlayer called but could not find other player');
+    }
+
+    private function neighbourPlayerIds(int $playerId)
+    {
+        switch ($this->getPlayerCount()) {
+            case 1:
+                return [$playerId];
+            case 2:
+                return [$this->otherPlayerId($playerId)];
+            default:
+                $playerIdArray = $this->getPlayerIdArray();
+                $playerIdArray = \BX\Collection\rotateValueToFront($playerIdArray, $playerId);
+                return [$playerIdArray[1], $playerIdArray[count($playerIdArray) - 1]];
+        }
+    }
+
+    private function revealTableauAndFauna()
+    {
+        $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
+        $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+
+        // Commit all players
+        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
+        foreach ($playerIdArray as $playerId) {
+            \BX\Action\ActionCommandMgr::commit($playerId);
+        }
+
+        // Give extra time
+        foreach ($playerIdArray as $playerId) {
+            $this->giveExtraTime($playerId);
+        }
+
+        $playerStateMgr->resetPlayersActivationNow();
+
+        // Reveal all invisible cards
+        foreach ($playerIdArray as $playerId) {
+            \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\MainAction\RevealTableau($playerId));
+        }
+        foreach ($playerIdArray as $playerId) {
+            \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\Fauna\RevealPrivateFauna($playerId));
+        }
+
+        // Check Fauna once the reveal is completed
+        foreach ($playerIdArray as $playerId) {
+            $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
+            $this->addCommonActions($creator);
+            $creator->commit();
+        }
+    }
+
+    private function updateAllPlayersCardCounts()
+    {
+        $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
+        foreach ($this->getPlayerIdArray() as $playerId) {
+            $notifier = new \BX\Action\ActionCommandNotifierPublic($playerId);
+            $notifier->notifyNoMessage(
+                NTF_UPDATE_CARD_COUNTS,
+                [
+                    'cardCounts' => $cardMgr->getCardCountsUIForPlayerId($playerId),
                 ]
             );
         }

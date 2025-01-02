@@ -19,6 +19,7 @@ require_once('CardDefMgrEarth.php');
 require_once('CardDefMgrFauna.php');
 require_once('CardDefMgrEcosystem.php');
 require_once('CardDefMgrGaia.php');
+require_once('CardDefMgrAbundance.php');
 
 class CardDefMgr
 {
@@ -79,6 +80,7 @@ class CardDefMgr
     use \EA\CardDefMgrFauna;
     use \EA\CardDefMgrEcosystem;
     use \EA\CardDefMgrGaia;
+    use \EA\CardDefMgrAbundance;
 
     private static $cardDefs;
 
@@ -105,6 +107,11 @@ class CardDefMgr
         }
         foreach (self::getCardDefGaia() as $cardDef) {
             self::$cardDefs[$cardDef->id] = $cardDef;
+        }
+        if (gameHasExpansionAbundance()) {
+            foreach (self::getCardDefAbundance() as $cardDef) {
+                self::$cardDefs[$cardDef->id] = $cardDef;
+            }
         }
     }
 }

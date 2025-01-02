@@ -55,18 +55,6 @@ define([
                 return null;
             },
 
-            getLocalPreferenceValueDescription(prefId, value) {
-                for (const regPref of this.localPreferenceToRegister) {
-                    if (regPref[0] == prefId) {
-                        if (value in regPref[2]) {
-                            return _(regPref[2][value]);
-                        }
-                        return null;
-                    }
-                }
-                return null;
-            },
-
             onPreferenceReady() {
                 for (const regPref of this.localPreferenceToRegister) {
                     const prefId = regPref[0];

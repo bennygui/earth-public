@@ -14,21 +14,6 @@ namespace BX\Lock;
 
 class Locker
 {
-    private static $registedTables = [];
-    private static $columnForTable = [];
-
-    public static function registerTableColumn(string $tableName, $columNames)
-    {
-        if (!array_key_exists($tableName, self::$columnForTable)) {
-            self::$registedTables[] = $tableName;
-        }
-        if (is_array($columNames)) {
-            self::$columnForTable[$tableName] = $columNames;
-        } else {
-            self::$columnForTable[$tableName] = [$columNames];
-        }
-    }
-
     public static function lock()
     {
         $db = new class extends \APP_DbObject
@@ -39,18 +24,8 @@ class Locker
             }
         };
 
-        foreach (self::$registedTables as $tableName) {
-            // For now, only lock the game_ table
-            if ($tableName != 'game_state') {
-                continue;
-            }
-            $colString = implode(', ', self::$columnForTable[$tableName]);
-            $db->executeSelect("SELECT $colString FROM $tableName WHERE 1 ORDER BY $colString FOR UPDATE");
-        }
+        $db->executeSelect("SELECT game_state_id FROM game_state WHERE 1 ORDER BY game_state_id FOR UPDATE");
         \BX\DB\RowMgrRegister::clearAllMgrCache();
+        \BX\Action\ActionRowMgrRegister::clearAllMgrCache();
     }
 }
-
-Locker::registerTableColumn('global', ['global_id', 'global_value']);
-Locker::registerTableColumn('player', 'player_id');
-Locker::registerTableColumn('stats', 'stats_id');

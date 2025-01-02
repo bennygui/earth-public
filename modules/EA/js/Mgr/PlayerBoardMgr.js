@@ -19,11 +19,35 @@ define([
         return declare("ea.PlayerBoardMgr", null, {
             MAX_CARDS: 5,
             MAX_SOIL_COUNT: 10,
+            MAX_SEED_COUNT: 10,
+            MAX_SPROUT_COUNT: 10,
             SOIL_SCALE: 0.7,
             SOIL_ANIMATION_DELAY: 50,
+            SEED_SCALE: 0.5,
+            SPROUT_SCALE: 0.7,
+            SEED_ANIMATION_DELAY: 50,
+            SPROUT_ANIMATION_DELAY: 50,
 
             setup(gamedatas) {
                 this.eventCardIds = {};
+                this.playerExchanges = gameui.deepClone(gamedatas.playerExchanges);
+
+                if (gameui.isFalse(gamedatas.gameHasExpansionAbundance)) {
+                    for (const e of document.querySelectorAll(
+                        '.ea-player-seed-count,'
+                        + ' .ea-player-seed-box,'
+                        + ' .ea-player-exchange-sprout-count,'
+                        + ' .ea-player-exchange-sprout-box,'
+                        + ' .ea-player-board-bottom-abundance'
+                    )) {
+                        e.classList.add('bx-hidden');
+                    }
+                }
+                if (gameui.isGameSolo()) {
+                    for (const e of document.querySelectorAll('.ea-player-board-bottom-abundance')) {
+                        e.classList.add('ea-solo');
+                    }
+                }
 
                 // Bottom part of the player panel (hidden by default)
                 gameui.addBasicTooltipToElement(
@@ -92,12 +116,33 @@ define([
                     Array.from(document.querySelectorAll('.ea-player-board-bottom-score-fauna')),
                     _('VP from Fauna board')
                 );
+                // Abundance player panel
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-abundance-germinate')),
+                    _('germinate &rarr; into hand')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-abundance-player-1')),
+                    _('any player(s) | other player(s)')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-abundance-player-2')),
+                    _('neighbour | another player')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-abundance-end-turn-sprout')),
+                    _('sprout on player board &rarr; in tableau at end of turn')
+                );
+                gameui.addBasicTooltipToElement(
+                    Array.from(document.querySelectorAll('.ea-player-board-bottom-abundance-sprout-storage')),
+                    _('Sprout storage: on player board above on Board Game Arena')
+                );
 
                 if (gameui.isGameSolo()) {
                     gameui.addBasicTooltipToElement(
                         Array.from(document.querySelectorAll('.ea-player-board-action-0')),
                         gameui.format_string_recursive(
-                            _('Plant (green).${br}You: Plant 2 cards, then draw 4 cards and keep 1.${br}Gaia: Your 3 discarded cards and placed on the Gaia board.${br}You: Activate green abilities.'),
+                            _('Plant (green).${br}You: Plant 2 cards, then draw 4 cards and keep 1.${br}Gaia: Your 3 discarded cards are placed on the Gaia board.${br}You: Activate green abilities.'),
                             { 'br': '<br/>' }
                         )
                     );
@@ -186,6 +231,8 @@ define([
                 for (const playerId in gamedatas.players) {
                     this.eventCardIds[playerId] = [];
                     gameui.counters[playerId].soil.addTarget(this.getPlayerIdBoardSoilCountElem(playerId));
+                    gameui.counters[playerId].seed.addTarget(this.getPlayerIdBoardSeedCountElem(playerId));
+                    gameui.counters[playerId].exchangeSprout.addTarget(this.getPlayerIdBoardExchangeSproutCountElem(playerId));
                     gameui.counters[playerId].compost.addTarget(this.getPlayerIdBoardCompostCountElem(playerId));
                     gameui.counters[playerId].event.addTarget(this.getPlayerIdBoardEventCountElem(playerId));
                 }
@@ -214,6 +261,11 @@ define([
                     const soilCount = gamedatas.soilCountByPlayerId[playerId];
                     this.updateSoilCountForPlayerId(playerId, soilCount, true);
                 }
+                for (const playerId in gamedatas.seedCountByPlayerId) {
+                    const seedCount = gamedatas.seedCountByPlayerId[playerId];
+                    this.updateSeedCountForPlayerId(playerId, seedCount, true);
+                }
+                this.updateExchangeSproutCount(true);
                 this.updateCompostCount(gamedatas.cardCounts.compostCountByPlayerId, true);
                 this.updateMainAction(gamedatas.mainActionId, gamedatas.activePlayerId);
                 for (const helpElement of document.querySelectorAll('.ea-player-board-event-help')) {
@@ -306,6 +358,100 @@ define([
                 return (prevSoilCount != soilCount);
             },
 
+            updateSeedCountForPlayerId(playerId, seedCount, isInstantaneous = false) {
+                const seedCountElem = this.getPlayerIdBoardSeedCountElem(playerId);
+                const prevSeedCount = parseInt(seedCountElem.innerText);
+                gameui.counters[playerId].seed.toValue(seedCount, isInstantaneous);
+                const seedBoxElem = this.getPlayerIdBoardSeedBoxElem(playerId);
+                for (const e of seedBoxElem.querySelectorAll('.ea-token-seed')) {
+                    e.remove();
+                }
+                for (let i = 0; i < Math.min(seedCount, this.MAX_SEED_COUNT); ++i) {
+                    const seedElem = gameui.createSeedTokenElement();
+                    seedBoxElem.appendChild(seedElem);
+                    seedElem.style.position = 'absolute';
+                    seedElem.style.transform = 'scale(' + this.SEED_SCALE + ') rotate(' + (Math.random() * 360) + 'deg)';
+                    seedElem.style.top = Math.floor(Math.random() * (seedBoxElem.offsetHeight - seedElem.offsetHeight * this.SEED_SCALE)) + 'px';
+                    seedElem.style.left = Math.floor(Math.random() * (seedBoxElem.offsetWidth - seedElem.offsetWidth * this.SEED_SCALE)) + 'px';
+                }
+                return (prevSeedCount != seedCount);
+            },
+
+            animateSeedFromCardIdToPlayerId(seedCount, fromCardId, toPlayerId) {
+                if (fromCardId === undefined || fromCardId === null) {
+                    return Promise.resolve();
+                }
+                const cardElem = gameui.cardMgr.getCardElementById(fromCardId);
+                if (cardElem === null) {
+                    return Promise.resolve();
+                }
+                const seedBoxElem = this.getPlayerIdBoardSeedBoxElem(toPlayerId);
+                return this.animateSeedToElement(seedCount, cardElem, seedBoxElem);
+            },
+
+            animateSeedToElement(seedCount, fromElement, toElement) {
+                const movements = [];
+                for (let i = 0; i < Math.min(seedCount, this.MAX_SEED_COUNT); ++i) {
+                    const seedElem = gameui.createSeedTokenElement();
+                    seedElem.style.position = 'relative';
+                    fromElement.appendChild(seedElem);
+                    gameui.placeOnObject(seedElem, fromElement);
+                    movements.push(
+                        gameui.slide(seedElem, toElement, {
+                            delay: i * this.SEED_ANIMATION_DELAY,
+                        }).then(
+                            () => seedElem.remove()
+                        )
+                    );
+                }
+                return Promise.all(movements);
+            },
+
+            updatePlayerExchange(newPlayerExchange, isInstantaneous = false) {
+                let found = false;
+                for (const i in this.playerExchanges) {
+                    const pe = this.playerExchanges[i];
+                    if (pe.fromPlayerId == newPlayerExchange.fromPlayerId && pe.toPlayerId == newPlayerExchange.toPlayerId) {
+                        this.playerExchanges[i] = gameui.deepClone(newPlayerExchange);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    this.playerExchanges.push(gameui.deepClone(newPlayerExchange));
+                }
+                this.updateExchangeSproutCount(isInstantaneous);
+            },
+
+            updateExchangeSproutCount(isInstantaneous = false) {
+                const countPerPlayer = {};
+                for (const pe of this.playerExchanges) {
+                    if (!(pe.toPlayerId in countPerPlayer)) {
+                        countPerPlayer[pe.toPlayerId] = 0;
+                    }
+                    countPerPlayer[pe.toPlayerId] += parseInt(pe.sproutGive) - parseInt(pe.sproutTake);
+                }
+                for (const playerId in countPerPlayer) {
+                    this.updateExchangeSproutCountForPlayerId(playerId, countPerPlayer[playerId], isInstantaneous);
+                }
+            },
+
+            updateExchangeSproutCountForPlayerId(playerId, exchangeSproutCount, isInstantaneous = false) {
+                gameui.counters[playerId].exchangeSprout.toValue(exchangeSproutCount, isInstantaneous);
+                const esBoxElem = this.getPlayerIdBoardExchangeSproutBoxElem(playerId);
+                for (const e of esBoxElem.querySelectorAll('.ea-token-sprout')) {
+                    e.remove();
+                }
+                for (let i = 0; i < Math.min(exchangeSproutCount, this.MAX_SPROUT_COUNT); ++i) {
+                    const sproutElem = gameui.createSproutNoShadowElement();
+                    esBoxElem.appendChild(sproutElem);
+                    sproutElem.style.position = 'absolute';
+                    sproutElem.style.transform = 'scale(' + this.SPROUT_SCALE + ') rotate(' + (Math.random() * 60 - 30) + 'deg)';
+                    sproutElem.style.top = Math.floor(Math.random() * (esBoxElem.offsetHeight - sproutElem.offsetHeight * this.SPROUT_SCALE)) + 'px';
+                    sproutElem.style.left = Math.floor(Math.random() * (esBoxElem.offsetWidth - sproutElem.offsetWidth * this.SPROUT_SCALE)) + 'px';
+                }
+            },
+
             animateSoilToElement(soilCount, fromElement, toElement) {
                 const movements = [];
                 for (let i = 0; i < Math.min(soilCount, this.MAX_SOIL_COUNT); ++i) {
@@ -366,8 +512,45 @@ define([
                 return this.animateSoilToElement(soilCount, conversionBoxElem, soilBoxElem);
             },
 
+            animateSproutExchange(sproutCount, fromPlayerId, toPlayerId) {
+                if (sproutCount <= 0 || gameui.isFastMode()) {
+                    return Promise.resolve();
+                }
+                if (!fromPlayerId || !toPlayerId) {
+                    return Promise.resolve();
+                }
+                const fromElement =
+                    fromPlayerId == toPlayerId
+                        ? gameui.getPlayerPanelBoardElem(fromPlayerId)
+                        : this.getPlayerIdBoardExchangeSproutBoxElem(fromPlayerId);
+                const toElement = this.getPlayerIdBoardExchangeSproutBoxElem(toPlayerId);
+                const movements = [];
+                for (let i = 0; i < Math.min(sproutCount, this.MAX_SPROUT_COUNT); ++i) {
+                    const sproutElem = gameui.createSproutNoShadowElement();
+                    sproutElem.style.position = 'relative';
+                    fromElement.appendChild(sproutElem);
+                    gameui.placeOnObject(sproutElem, fromElement);
+                    movements.push(
+                        gameui.slide(sproutElem, toElement, {
+                            delay: i * this.SPROUT_ANIMATION_DELAY,
+                        }).then(
+                            () => sproutElem.remove()
+                        )
+                    );
+                }
+                return Promise.all(movements);
+            },
+
             getPlayerIdConversionBoxElem(playerId) {
                 return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-soil-conversion-box');
+            },
+
+            getPlayerIdCreateSeedBoxElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-board-bottom-abundance-create-seed');
+            },
+
+            getPlayerIdUseSeedBoxElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-board-bottom-abundance-use-seed');
             },
 
             getPlayerIdBoardSoilCountElem(playerId) {
@@ -376,6 +559,22 @@ define([
 
             getPlayerIdBoardSoilBoxElem(playerId) {
                 return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-soil-box');
+            },
+
+            getPlayerIdBoardSeedCountElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-seed-count');
+            },
+
+            getPlayerIdBoardSeedBoxElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-seed-box');
+            },
+
+            getPlayerIdBoardExchangeSproutCountElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-exchange-sprout-count');
+            },
+
+            getPlayerIdBoardExchangeSproutBoxElem(playerId) {
+                return document.querySelector('#ea-area-player-' + playerId + ' .ea-player-exchange-sprout-box');
             },
 
             getPlayerIdBoardLeafElem(playerId, x) {
@@ -426,7 +625,31 @@ define([
                 return gameui.slide(cardElem, areaElem, {
                     phantom: true,
                     isInstantaneous: isInstantaneous,
+                }).then(() => {
+                    this.updateIslandClimateOverview(playerId);
                 });
+            },
+
+            updateIslandClimateOverview(playerId) {
+                const overviewElem = document.querySelector('#overall_player_board_' + playerId + ' .ea-player-panel-island-climate-overview');
+                overviewElem.innerHTML = '';
+                for (let i = 0; i <= 1; ++i) {
+                    const cardElem = this.getPlayerIdAreaCardElement(playerId, i, null).querySelector('.ea-card-container');
+                    if (cardElem === null) {
+                        continue;
+                    }
+                    const cardId = cardElem.dataset.cardId;
+                    const def = gameui.gamedatas.carddefs[cardId];
+                    const miniCard = document.createElement('div');
+                    miniCard.classList.add('ea-mini-card');
+                    for (const ability of def.abilities) {
+                        const miniAbility = document.createElement('div');
+                        miniAbility.classList.add('ea-mini-ability');
+                        miniAbility.classList.add('ea-mini-ability-color-' + ability.color);
+                        miniCard.appendChild(miniAbility);
+                    }
+                    overviewElem.appendChild(miniCard);
+                }
             },
 
             getPlayerIdAreaCompostCardsElement(playerId) {

@@ -13,7 +13,6 @@
 namespace BX\Action;
 
 require_once('DB.php');
-require_once('Lock.php');
 
 // Annotations used by this module:
 // @dbcol @dbkey: To work with Actions, database table should have only one @dbkey.
@@ -31,14 +30,15 @@ const REEVALUATE_DELETE = 2;
 const REEVALUATE_UNDO_SILENT = 1;
 const REEVALUATE_UNDO = 0;
 
-\BX\Lock\Locker::registerTableColumn('action_command', 'action_command_id');
-
 trait GameActionsTrait
 {
     public function undoLast()
     {
         \BX\Lock\Locker::lock();
         $playerId = self::getCurrentPlayerId();
+        if (!array_key_exists($playerId, $this->loadPlayersBasicInfos())) {
+            throw new \BgaUserException($this->_('This action is not possible at this time'));
+        }
         ActionCommandMgr::undoLast($playerId, true);
     }
 
@@ -46,6 +46,9 @@ trait GameActionsTrait
     {
         \BX\Lock\Locker::lock();
         $playerId = self::getCurrentPlayerId();
+        if (!array_key_exists($playerId, $this->loadPlayersBasicInfos())) {
+            throw new \BgaUserException($this->_('This action is not possible at this time'));
+        }
         ActionCommandMgr::undoAll($playerId, true);
     }
 }
@@ -70,6 +73,13 @@ class ActionRowMgrRegister
     public static function getAllMgr()
     {
         return self::$mgrByKey;
+    }
+
+    public static function clearAllMgrCache()
+    {
+        foreach (self::$mgrByKey as $mgr) {
+            $mgr->clearCache();
+        }
     }
 }
 
@@ -105,14 +115,19 @@ abstract class BaseActionRow extends \BX\DB\BaseRow
 abstract class BaseActionRowMgr
 {
     protected $db;
+    private $useCache;
+    private $cacheRowByKey;
     private $modifiedRowByKey;
     private $newRowByKey;
 
     public function __construct(string $tableName, string $baseRowClassName)
     {
+        $this->useCache = true;
+        $this->cacheRowByKey = null;
         $this->modifiedRowByKey = [];
         $this->newRowByKey = [];
         $this->db = \BX\DB\RowMgrRegister::newMgr($tableName, $baseRowClassName);
+        $this->db->registerOnChanging(fn() => $this->clearCache());
     }
 
     public function modifyAction(BaseActionRow $actionRow)
@@ -133,17 +148,47 @@ abstract class BaseActionRowMgr
         foreach ($this->newRowByKey as $row) {
             $this->db->insertRow($row);
         }
+        $this->clearCache();
+    }
+
+    public function setUseCache(bool $useCache = true)
+    {
+        $this->db->setUseCache($useCache);
+        $this->useCache = $useCache;
+        $this->clearCache();
+    }
+
+    public function clearCache()
+    {
+        $this->cacheRowByKey = null;
+    }
+
+    public function fillCache()
+    {
+        if ($this->useCache && $this->cacheRowByKey === null) {
+            $this->cacheRowByKey = $this->db->getAllRowsByKey();
+        }
     }
 
     public function clearModifiedActions()
     {
+        $this->clearCache();
         $this->modifiedRowByKey = [];
         $this->newRowByKey = [];
     }
 
+    private function getAllRowsByKeyFromCache()
+    {
+        $this->fillCache();
+        if ($this->useCache && $this->cacheRowByKey !== null) {
+            return $this->cacheRowByKey;
+        }
+        return $this->db->getAllRowsByKey();
+    }
+
     public function getAllRowsByKey()
     {
-        $rows = $this->db->getAllRowsByKey();
+        $rows = $this->getAllRowsByKeyFromCache();
         foreach ($rows as $key => $row) {
             if (array_key_exists($key, $this->modifiedRowByKey)) {
                 $rows[$key] = $this->modifiedRowByKey[$key];
@@ -164,6 +209,13 @@ abstract class BaseActionRowMgr
         if (array_key_exists($key, $this->newRowByKey)) {
             return $this->newRowByKey[$key];
         }
+        if ($this->useCache && $this->cacheRowByKey !== null) {
+            $row = $this->cacheRowByKey[$key];
+            if ($row !== null) {
+                $row->setActionMgr($this);
+            }
+            return $row;
+        }
         $row = $this->db->getRowByKey($key);
         if ($row !== null) {
             $row->setActionMgr($this);
@@ -180,15 +232,30 @@ abstract class BaseActionRowMgr
 abstract class BaseActionCommand
 {
     protected $playerId;
+    protected $wasSentPrivate;
 
     public function __construct(int $playerId)
     {
         $this->playerId = $playerId;
+        $this->wasSentPrivate = false;
     }
 
     public function getPlayerId()
     {
         return $this->playerId;
+    }
+
+    public function setWasSentPrivate(bool $wasSentPrivate = true)
+    {
+        $this->wasSentPrivate = $wasSentPrivate;
+    }
+
+    public function getWasSentPrivate()
+    {
+        if ($this->wasSentPrivate === null) {
+            return false;
+        }
+        return $this->wasSentPrivate;
     }
 
     abstract public function do(BaseActionCommandNotifier $notifier);
@@ -246,6 +313,32 @@ abstract class BaseActionCommandNoUndo extends BaseActionCommand
     }
 }
 
+class SendMessage extends BaseActionCommand
+{
+    private $message;
+    private $args;
+
+    public function __construct(int $playerId, string $message, array $args = [])
+    {
+        parent::__construct($playerId);
+        $this->message = $message;
+        $this->args = $args;
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $notifier->notify(
+            NTF_MESSAGE,
+            $this->message,
+            $this->args
+        );
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+    }
+}
+
 interface GroupedActionCommandInterface
 {
     public function doWithCallback(BaseActionCommandNotifier $notifier, ?callable $callback);
@@ -259,6 +352,14 @@ class GroupActionCommand extends BaseActionCommand implements GroupedActionComma
     {
         parent::__construct($playerId);
         $this->actions = [];
+    }
+
+    public function setWasSentPrivate(bool $wasSentPrivate = true)
+    {
+        parent::setWasSentPrivate($wasSentPrivate);
+        foreach ($this->actions as $action) {
+            $action->setWasSentPrivate($wasSentPrivate);
+        }
     }
 
     public function add(BaseActionCommand $actionCommand)
@@ -429,17 +530,32 @@ abstract class BaseActionCommandNotifier
     private $privateStateChanged;
     private $onNotifierEndCallback;
     private $onNotifierEndCallbackSingle;
+    private $wasSentPrivate;
     public function __construct(int $playerId)
     {
         $this->playerId = $playerId;
         $this->privateStateChanged = false;
         $this->onNotifierEndCallback = [];
         $this->onNotifierEndCallbackSingle = null;
+        $this->wasSentPrivate = false;
     }
 
     public function getPlayerId()
     {
         return $this->playerId;
+    }
+
+    public function setWasSentPrivate(bool $wasSentPrivate = true)
+    {
+        $this->wasSentPrivate = $wasSentPrivate;
+    }
+
+    public function getWasSentPrivate()
+    {
+        if ($this->wasSentPrivate === null) {
+            return false;
+        }
+        return $this->wasSentPrivate;
     }
 
     abstract public function notify(string $notifType, string $notifLog, array $notifArgs);
@@ -520,7 +636,7 @@ abstract class BaseActionCommandNotifier
         self::$game->notifyAllPlayers($notifType, $notifLog, $this->processNotifArgs($notifArgs));
     }
 
-    protected function processNotifArgs(array $notifArgs)
+    public function processNotifArgs(array $notifArgs)
     {
         $info = self::$game->loadPlayersBasicInfos();
         $playerName = '';
@@ -534,6 +650,7 @@ abstract class BaseActionCommandNotifier
                     'player_id' => $this->playerId,
                     'playerName' => $playerName,
                     'player_name' => $playerName,
+                    'wasSentPrivate' => $this->getWasSentPrivate(),
                 ],
                 $notifArgs
             )
@@ -573,7 +690,7 @@ abstract class BaseActionCommandNotifier
                 $argFunction = $state['args'];
                 $args = array_merge($args, self::$game->$argFunction($this->playerId));
             }
-            $args['undoLevel'] = \BX\Action\ActionCommandMgr::count($this->playerId);
+            $args['undoLevel'] = \BX\Action\ActionCommandMgr::undoLevel($this->playerId);
             $this->notifyCurrentPlayer(NTF_CHANGE_PRIVATE_STATE, '', [
                 'stateId' => $stateId,
                 'stateName' => $stateName,
@@ -929,6 +1046,7 @@ class ActionCommandMgr
 
     public static function applyOne(BaseActionCommand $actionCommand, BaseActionCommandNotifier $notifier)
     {
+        $notifier->setWasSentPrivate($actionCommand->getWasSentPrivate());
         $actionCommand->do($notifier);
     }
 
@@ -938,6 +1056,7 @@ class ActionCommandMgr
         if ($hasUndoRow !== null) {
             self::get()->db->deleteRow($hasUndoRow);
         }
+        $actionCommand->setWasSentPrivate();
         $row = self::get()->db->newRow();
         $row->setAction($actionCommand);
         self::get()->db->insertRow($row);
@@ -973,6 +1092,7 @@ class ActionCommandMgr
                 $notifier->setCanChangeState();
             }
             $actionCommand = $row->getAction();
+            $notifier->setWasSentPrivate($actionCommand->getWasSentPrivate());
             self::get()->db->deleteRow($row);
             if ($actionCommand instanceof GroupedActionCommandInterface) {
                 $actionCommand->doWithCallback($notifier, $saveModifiedActions);
@@ -1003,7 +1123,17 @@ class ActionCommandMgr
     {
         $notifier = new ActionCommandNotifierUndo($playerId);
         if ($fromPlayerAction && BaseActionCommandNotifier::mustSendPrivateNotificationMessage()) {
-            $notifier->notifyForceMessage(NTF_MESSAGE, clienttranslate('[Unconfirmed action] ${player_name} undoes last unconfirmed action'), []);
+            $notifier->notifyForceMessage(
+                NTF_MESSAGE,
+                clienttranslate('[Unconfirmed action] ${notifArgs}'),
+                [
+                    'isUnconfirmedAction' => true,
+                    'notifArgs' => [
+                        'log' => clienttranslate('${player_name} undoes last unconfirmed action'),
+                        'args' => $notifier->processNotifArgs([]),
+                    ],
+                ]
+            );
         }
         $notifier->notifyNoMessage(NTF_UNDO_BEGIN, []);
         $hasUndone = false;
@@ -1017,7 +1147,9 @@ class ActionCommandMgr
                 if ($hasUndone && !$actionCommand->mustAlwaysUndoAction()) {
                     break;
                 }
-                $hasUndone = true;
+                if (!$actionCommand->mustAlwaysUndoAction()) {
+                    $hasUndone = true;
+                }
                 $actionCommand->undo($notifier);
                 self::get()->db->deleteRow($row);
             }
@@ -1030,7 +1162,17 @@ class ActionCommandMgr
     {
         $notifier = new ActionCommandNotifierUndo($playerId);
         if ($fromPlayerAction && BaseActionCommandNotifier::mustSendPrivateNotificationMessage()) {
-            $notifier->notifyForceMessage(NTF_MESSAGE, clienttranslate('[Unconfirmed action] ${player_name} undoes all unconfirmed actions'), []);
+            $notifier->notifyForceMessage(
+                NTF_MESSAGE,
+                clienttranslate('[Unconfirmed action] ${notifArgs}'),
+                [
+                    'isUnconfirmedAction' => true,
+                    'notifArgs' => [
+                        'log' => clienttranslate('${player_name} undoes all unconfirmed actions'),
+                        'args' => $notifier->processNotifArgs([]),
+                    ],
+                ]
+            );
         }
         $notifier->notifyNoMessage(NTF_UNDO_BEGIN, []);
         foreach (self::get()->db->getAllRows('action_command_id DESC') as $row) {
@@ -1054,6 +1196,17 @@ class ActionCommandMgr
                 self::get()->db->deleteRow($row);
             }
         }
+    }
+
+    public static function zombieRemoveAll(int $playerId)
+    {
+        foreach (self::get()->db->getAllRows('action_command_id DESC') as $row) {
+            $actionCommand = $row->getAction();
+            if ($actionCommand->getPlayerId() == $playerId) {
+                self::get()->db->deleteRow($row);
+            }
+        }
+        self::clear();
     }
 
     public static function undoUntilAndIncludingFirstMatch(int $playerId, callable $matchFunction)
@@ -1093,6 +1246,29 @@ class ActionCommandMgr
             $actionCommand = $row->getAction();
             return ($actionCommand->getPlayerId() == $playerId && get_class($actionCommand) != ReevaluateHasUndoneActionCommand::class);
         }));
+    }
+
+    public static function undoLevel(int $playerId)
+    {
+        $undoLevel = 0;
+        $hasAlwaysUndo = false;
+        foreach (self::get()->db->getAllRows('action_command_id DESC') as $row) {
+            $actionCommand = $row->getAction();
+            if ($actionCommand->getPlayerId() == $playerId) {
+                if (get_class($actionCommand) == ReevaluateHasUndoneActionCommand::class) {
+                    continue;
+                }
+                if ($actionCommand->mustAlwaysUndoAction()) {
+                    $hasAlwaysUndo = true;
+                    continue;
+                }
+                ++$undoLevel;
+            }
+        }
+        if ($hasAlwaysUndo && $undoLevel == 0) {
+            $undoLevel = 1;
+        }
+        return $undoLevel;
     }
 
     public static function mergeReevaluationArgs(array $args1, array $args2)

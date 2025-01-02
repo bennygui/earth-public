@@ -17,15 +17,15 @@ define([
 ],
     function (dojo, declare) {
         return declare("ea.PlayerSetupTrait", null, {
-            onButtonsStatePlayerSetupChooseInitialCards(args) {
-                debug('onButtonsStatePlayerSetupChooseInitialCards');
+            onStatePlayerSetupChooseInitialCards(args) {
+                debug('onStatePlayerSetupChooseInitialCards');
                 debug(args);
                 const chosenCardIds = new Set();
                 const ID_CHOOSE_CARDS = 'button-choose-cards';
                 this.addTopButtonPrimaryWithValid(
                     ID_CHOOSE_CARDS,
                     _('Choose cards'),
-                    args.nbCardsToSelect == 3
+                    args.args.nbCardsToSelect == 3
                     ?  _('You must choose one Island, one Climate and one Ecosystem')
                     :  _('You must choose one Island and one Climate'),
                     () => {
@@ -33,11 +33,11 @@ define([
                     }
                 );
                 this.setTopButtonValid(ID_CHOOSE_CARDS, false);
-                for (const cardId in args.cardIdGroups) {
+                for (const cardId in args.args.cardIdGroups) {
                     const cardElem = this.cardMgr.getCardSelectionElementById(cardId);
                     const onClick = () => {
                         const wasSelected = (chosenCardIds.has(cardId));
-                        for (const otherCardId of args.cardIdGroups[cardId]) {
+                        for (const otherCardId of args.args.cardIdGroups[cardId]) {
                             const otherCardElem = this.cardMgr.getCardSelectionElementById(otherCardId);
                             this.removeSelected(otherCardElem);
                             chosenCardIds.delete(otherCardId);
@@ -46,7 +46,7 @@ define([
                             this.addSelected(cardElem);
                             chosenCardIds.add(cardId);
                         }
-                        this.setTopButtonValid(ID_CHOOSE_CARDS, chosenCardIds.size == args.nbCardsToSelect);
+                        this.setTopButtonValid(ID_CHOOSE_CARDS, chosenCardIds.size == args.args.nbCardsToSelect);
                     };
                     this.addClickable(cardElem, onClick);
                     if (this.elementWasSelectedBeforeRemoveAll(cardElem)) {
@@ -56,14 +56,14 @@ define([
                 this.clearSelectedBeforeRemoveAll();
             },
 
-            onButtonsStatePlayerSetupCompostCards(args) {
-                debug('onButtonsStatePlayerSetupCompostCards');
+            onStatePlayerSetupCompostCards(args) {
+                debug('onStatePlayerSetupCompostCards');
                 debug(args);
                 const ID_COMPOST_CARDS = 'button-compost-cards';
                 this.addTopButtonPrimaryWithValid(
                     ID_COMPOST_CARDS,
                     _('Compost cards'),
-                    this.format_string_recursive(_('You must choose ${compostFromHandCount} card(s) to compost from your hand'), args),
+                    this.format_string_recursive(_('You must choose ${compostFromHandCount} card(s) to compost from your hand'), args.args),
                     () => {
                         this.serverAction('playerSetupCompost', { cardIds: this.paymentMgr.compostFromHandCardIds().join(',') });
                     }
@@ -71,7 +71,7 @@ define([
                 this.paymentMgr.startPayment(() => {
                     this.setTopButtonValid(ID_COMPOST_CARDS, this.paymentMgr.isPaymentValid());
                 });
-                this.paymentMgr.addCompostFromHand(args.handCardIds, args.compostFromHandCount);
+                this.paymentMgr.addCompostFromHand(args.args.handCardIds, args.args.compostFromHandCount);
             },
         });
     });

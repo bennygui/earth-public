@@ -41,6 +41,37 @@ define([
                 this.notificationsToRegister.push(['NTF_IS_GAIA_TURN', null]);
                 this.notificationsToRegister.push(['NTF_SEEN_FAUNA_OBJECTIVE', null]);
                 this.notificationsToRegister.push(['NTF_UPDATE_FAUNA_PROGRESS', null]);
+                this.notificationsToRegister.push(['NTF_PLAYER_GAIN_SEED', -1]);
+                this.notificationsToRegister.push(['NTF_PLAYER_PAY_SEED', -1]);
+                this.notificationsToRegister.push(['NTF_UPDATE_PLAYER_EXCHANGE', -1]);
+            },
+
+            useFastNotification(playerId) {
+                if (!this.getLocalPreference(this.EA_PREF_FAST_NOTIF_ID)) {
+                    return false;
+                }
+                if (playerId === null || playerId === undefined || this.isReadOnly() || this.isBGAFastMode()) {
+                    return false;
+                }
+                return (this.player_id != playerId);
+            },
+
+            onBeforeNotification(notifId, args) {
+                if (notifId != 'NTF_SCOREPAD'
+                    && notifId != 'NTF_UPDATE_GAIA'
+                    && notifId != 'NTF_IS_GAIA_TURN'
+                    && notifId != 'NTF_UPDATE_PLAYER_EXCHANGE'
+                    && args
+                    && args.args
+                    && this.useFastNotification(args.args.playerId)
+                ) {
+                    this.setBXFastMode(true);
+                }
+                this.inherited(arguments);
+            },
+            onAfterNotification(notifId, args) {
+                this.setBXFastMode(false);
+                this.inherited(arguments);
             },
 
             notif_UpdateCards(args) {
@@ -54,9 +85,7 @@ define([
                     }));
                     ++i;
                 }
-                Promise.all(movements).then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                return movements;
             },
             updateOneCard(card) {
                 const cardId = card.cardId;
@@ -87,6 +116,9 @@ define([
                         break;
                     case this.CARD_LOCATION_HAND:
                         movement = this.handMgr.moveCardIdToHand(cardId, card.locationX);
+                        break;
+                    case this.CARD_LOCATION_END_TURN:
+                        movement = this.handMgr.moveCardIdToEndTurn(cardId, card.locationOrder);
                         break;
                     case this.CARD_LOCATION_TABLEAU:
                         // Sould be handled by tableau notification
@@ -124,9 +156,7 @@ define([
                     args.args.playerId,
                     gameui.parseCompactCardList(args.args.tableauCards)
                 );
-                movement.then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                return movement;
             },
 
             notif_MoveCompostFromDeck(args) {
@@ -138,9 +168,7 @@ define([
                     this.deckMgr.moveElementToDeck(cardElem, true);
                     movements.push(this.playerBoardMgr.moveElementToPlayerIdCompost(args.args.playerId, cardElem, false, 50));
                 }
-                Promise.all(movements).then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                return movements;
             },
 
             notif_DestroyCompost(args) {
@@ -156,9 +184,7 @@ define([
                         movements.push(this.deckMgr.moveElementToDiscard(cardElem));
                     }));
                 }
-                Promise.all(movements).then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                return movements;
             },
 
             notif_PlayerGainSoil(args) {
@@ -174,7 +200,7 @@ define([
                 } else {
                     movement.push(Promise.resolve());
                 }
-                Promise.all(movement).then(() => this.notifqueue.setSynchronousDuration(0));
+                return movement;
             },
 
             notif_PlayerPaySoil(args) {
@@ -186,7 +212,7 @@ define([
                 } else {
                     movement.push(Promise.resolve());
                 }
-                Promise.all(movement).then(() => this.notifqueue.setSynchronousDuration(0));
+                return movement;
             },
 
             notif_UpdateCardCounts(args) {
@@ -218,7 +244,25 @@ define([
                 const leafToken = args.args.leafToken;
                 // Move the token. The called function should do nothing if already at right place
                 const movements = [];
+                let isInstantaneous = false;
+                let tokenElem = this.leafTokenMgr.getLeafElementByTokenId(leafToken.tokenId);
+                if (tokenElem === null && parseInt(leafToken.locationId) != this.LEAF_LOCATION_ID_DICARD) {
+                    isInstantaneous = true;
+                    const elemCreationElem = gameui.getElementCreationElement();
+                    tokenElem = this.leafTokenMgr.createLeafElement(leafToken, true);
+                    elemCreationElem.appendChild(tokenElem);
+                }
                 switch (parseInt(leafToken.locationId)) {
+                    case this.LEAF_LOCATION_ID_DICARD:
+                        if (tokenElem !== null) {
+                            movements.push(
+                                this.animateOverScaleElement(tokenElem, false).then(() => tokenElem.remove())
+                            );
+                        }
+                        break;
+                    case this.LEAF_LOCATION_ID_GAIA_ABUNDANCE:
+                        movements.push(this.gaiaBoardMgr.moveLeafTokenIdToGaiaAbundance(leafToken.tokenId));
+                        break;
                     case this.LEAF_LOCATION_ID_PLAYER_BOARD:
                         if (leafToken.playerId == this.GAIA_PLAYER_ID) {
                             movements.push(this.gaiaBoardMgr.moveLeafTokenIdToGaiaBoard(
@@ -229,7 +273,8 @@ define([
                             movements.push(this.playerBoardMgr.moveLeafTokenIdToPlayerBoard(
                                 leafToken.tokenId,
                                 leafToken.playerId,
-                                leafToken.locationX
+                                leafToken.locationX,
+                                isInstantaneous
                             ));
                         }
                         break;
@@ -237,7 +282,8 @@ define([
                         movements.push(this.playerBoardMgr.moveLeafTokenIdToPlayerAction(
                             leafToken.tokenId,
                             leafToken.playerId,
-                            leafToken.locationX
+                            leafToken.locationX,
+                            isInstantaneous
                         ));
                         break;
                     case this.LEAF_LOCATION_ID_FAUNA_BOARD_FAUNA:
@@ -257,14 +303,13 @@ define([
                         movements.push(this.faunaBoardMgr.moveLeafTokenIdToFaunaTableauBonus(leafToken.tokenId));
                         break;
                 }
-                Promise.all(movements).then(() => {
+                return Promise.all(movements).then(() => {
                     this.faunaBoardMgr.updatePlayerPanelFaunaCounters();
                     this.objectiveDetailMgr.refresh();
-                    this.notifqueue.setSynchronousDuration(0);
                 });
             },
             showFaunaObjectiveDialog(leafToken, log, logArgs) {
-                if (this.isReadOnly() || this.isFastMode()) {
+                if (this.isReadOnly() || this.isBGAFastMode()) {
                     return Promise.resolve();
                 }
                 if (leafToken.playerId == this.GAIA_PLAYER_ID) {
@@ -319,10 +364,8 @@ define([
             notif_Scorepad(args) {
                 debug('notif_Scorepad');
                 debug(args);
-                const movement = this.scoreMgr.activateScorepad(args.args.scorepad)
-                movement.then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                const movement = this.scoreMgr.activateScorepad(args.args.scorepad, args.args.gameHasEnded)
+                return movement;
             },
 
             notif_UpdateActive(args) {
@@ -337,9 +380,7 @@ define([
             notif_UpdateCardTag(args) {
                 debug('notif_UpdateCardTag');
                 debug(args);
-                this.handMgr.updateCardTag(args.args.cardTags).then(() => {
-                    this.notifqueue.setSynchronousDuration(0);
-                });
+                return this.handMgr.updateCardTag(args.args.cardTags);
             },
 
             notif_UpdateGaia(args) {
@@ -355,7 +396,7 @@ define([
                 if (args.args.gaiaDiscardCards !== null) {
                     this.gaiaBoardMgr.buildGaiaDiscardFromCards(args.args.gaiaDiscardCards);
                 }
-                Promise.all(movements).then(() => this.notifqueue.setSynchronousDuration(0));
+                return movements;
             },
 
             notif_IsGaiaTurn(args) {
@@ -377,6 +418,34 @@ define([
                     this.faunaProgress[playerId] = args.args.faunaProgress[playerId];
                 }
                 this.objectiveDetailMgr.refresh();
+            },
+
+            notif_PlayerGainSeed(args) {
+                debug('notif_PlayerGainSeed');
+                debug(args);
+                const movements = [];
+                if (this.playerBoardMgr.updateSeedCountForPlayerId(args.args.playerId, args.args.totalSeedCount)) {
+                    movements.push(this.playerBoardMgr.animateSeedFromCardIdToPlayerId(args.args.gainSeedCount, args.args.fromCardId, args.args.playerId));
+                }
+                return movements;
+            },
+
+            notif_PlayerPaySeed(args) {
+                debug('notif_PlayerPaySeed');
+                debug(args);
+                const movements = [];
+                if (this.playerBoardMgr.updateSeedCountForPlayerId(args.args.playerId, args.args.totalSeedCount)) {
+                    movements.push(this.playerBoardMgr.animateSeedFromCardIdToPlayerId(args.args.gainSeedCount, args.args.fromCardId, args.args.playerId));
+                }
+                return movements;
+            },
+
+            notif_UpdatePlayerExchange(args) {
+                debug('notif_UpdatePlayerExchange');
+                debug(args);
+                return this.playerBoardMgr.animateSproutExchange(args.args.sproutCount, args.args.fromPlayerId, args.args.toPlayerId).then(() => {
+                    this.playerBoardMgr.updatePlayerExchange(args.args.playerExchange);
+                });
             },
         });
     });

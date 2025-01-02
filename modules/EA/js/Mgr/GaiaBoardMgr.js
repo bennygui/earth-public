@@ -58,11 +58,10 @@ define([
 
                 for (const tokenId in gamedatas.leafs) {
                     const leaf = gamedatas.leafs[tokenId];
-                    if (leaf.playerId != gameui.GAIA_PLAYER_ID) {
-                        continue;
-                    }
-                    if (leaf.locationId == gameui.LEAF_LOCATION_ID_PLAYER_BOARD) {
+                    if (leaf.playerId == gameui.GAIA_PLAYER_ID && leaf.locationId == gameui.LEAF_LOCATION_ID_PLAYER_BOARD) {
                         this.moveLeafTokenIdToGaiaBoard(tokenId, leaf.locationX, true);
+                    } else if (leaf.locationId == gameui.LEAF_LOCATION_ID_GAIA_ABUNDANCE) {
+                        this.moveLeafTokenIdToGaiaAbundance(tokenId, true);
                     }
                 }
 
@@ -102,6 +101,15 @@ define([
 
             getGaiaTableauCardIds() {
                 return this.gaiaTableauCardIds;
+            },
+
+            moveLeafTokenIdToGaiaAbundance(tokenId, isInstantaneous = false) {
+                const leafBoardElem = document.getElementById('ea-gaia-board-abundance-leaf');
+                const leafElem = gameui.leafTokenMgr.getLeafElementByTokenId(tokenId);
+                return gameui.slide(leafElem, leafBoardElem, {
+                    phantom: true,
+                    isInstantaneous: isInstantaneous,
+                });
             },
 
             moveLeafTokenIdToGaiaBoard(tokenId, x, isInstantaneous = false) {

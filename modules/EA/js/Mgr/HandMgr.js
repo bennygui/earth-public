@@ -77,10 +77,11 @@ define([
                 // Move cards to hand
                 for (const cardId in gamedatas.cards) {
                     const card = gamedatas.cards[cardId];
-                    if (card.locationId != gameui.CARD_LOCATION_HAND) {
-                        continue;
+                    if (card.locationId == gameui.CARD_LOCATION_HAND) {
+                        this.moveCardIdToHand(cardId, card.locationX, true);
+                    } else if (card.locationId == gameui.CARD_LOCATION_END_TURN) {
+                        this.moveCardIdToEndTurn(cardId, card.locationOrder, true);
                     }
-                    this.moveCardIdToHand(cardId, card.locationX, true);
                 }
                 for (const playerId in gamedatas.cardCounts.handCountByPlayerId) {
                     gameui.counters[playerId].hand.setValue(gamedatas.cardCounts.handCountByPlayerId[playerId]);
@@ -170,6 +171,10 @@ define([
                 return document.getElementById('ea-area-card-hand');
             },
 
+            getCardEndTurnElement() {
+                return document.getElementById('ea-area-card-end-turn-container');
+            },
+
             getCardHandContainerElement() {
                 return document.getElementById('ea-area-card-hand-container');
             },
@@ -233,8 +238,19 @@ define([
                 return Promise.resolve();
             },
 
+            moveCardIdToEndTurn(cardId, order, isInstantaneous = false) {
+                const endTurnElem = this.getCardEndTurnElement();
+                const cardElem = gameui.cardMgr.getCardElementById(cardId);
+                cardElem.style.setProperty('--ea-end-turn-order', order);
+                return gameui.slide(cardElem, endTurnElem, {
+                    phantom: true,
+                    isInstantaneous: isInstantaneous,
+                });
+            },
+
             setZoomFactor(value) {
                 this.getCardHandElement().style.setProperty('--ea-zoom', value / 100);
+                this.getCardEndTurnElement().style.setProperty('--ea-zoom', value / 100);
                 this.getCardHandZoomSliderElement().value = value;
             },
 

@@ -17,6 +17,8 @@ require_once('PlayerScore.php');
 
 function commitFinalScores()
 {
+    $playerScoreMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_score');
+    $playerScoreMgr->deleteAllScoresNow();
     $scores = getScores();
     foreach ($scores as $score) {
         $score->commitFinalScore();
@@ -66,12 +68,25 @@ function getScores()
     return $scores;
 }
 
+class ScoreProgress
+{
+    public $score;
+    public $progress;
+
+    public function __construct(int $score, int $progress)
+    {
+        $this->score = $score;
+        $this->progress = $progress;
+    }
+}
+
 abstract class ScoreBase
 {
     protected $playerId;
     protected $cardId;
     protected $scoreTypeId;
     protected $extraScore;
+    protected $extraProgress;
 
     public function __construct(int $playerId, ?int $cardId, int $scoreTypeId)
     {
@@ -79,6 +94,7 @@ abstract class ScoreBase
         $this->cardId = $cardId;
         $this->scoreTypeId = $scoreTypeId;
         $this->extraScore = null;
+        $this->extraProgress = null;
     }
 
     protected static function getMgr(string $key)
@@ -110,12 +126,27 @@ abstract class ScoreBase
         $playerScore->scoreTypeId = $this->scoreTypeId;
         $playerScore->score = $score;
         $playerScore->extraScore = $this->extraScore;
+        $playerScore->extraProgress = $this->extraProgress;
         $playerScoreMgr->commitNewScore($playerScore);
+    }
+
+    public function getFinalScore()
+    {
+        $score = $this->onScore();
+        if ($score === null) {
+            return 0;
+        }
+        return $score;
     }
 
     protected function setExtraScore(string $extra)
     {
         $this->extraScore = $extra;
+    }
+
+    protected function setExtraProgress(int $progress)
+    {
+        $this->extraProgress = $progress;
     }
 
     abstract protected function onScore();
@@ -159,6 +190,134 @@ abstract class ScoreCardBase extends ScoreBase
     }
 
     abstract protected function onScoreCard(\EA\Card $card);
+
+    protected function hasDifferentAbilityColorSet(array $cards, array $seenColorSet)
+    {
+        if (count($cards) == 0) {
+            return true;
+        }
+        $firstCardDef = $cards[0]->getCardDef();
+        foreach ($firstCardDef->getAllAbilities() as $ability) {
+            if ($ability->color == \EA\AB_COLOR_MULTICOLOR) {
+                foreach (\EA\MULTICOLOR_COLORS as $color) {
+                    if (array_key_exists($color, $seenColorSet)) {
+                        continue;
+                    }
+                    if ($this->hasDifferentAbilityColorSet(array_slice($cards, 1), array_replace($seenColorSet, [$color => true]))) {
+                        return true;
+                    }
+                }
+            } else {
+                if (array_key_exists($ability->color, $seenColorSet)) {
+                    continue;
+                }
+                if ($this->hasDifferentAbilityColorSet(array_slice($cards, 1), array_replace($seenColorSet, [$ability->color => true]))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    protected function onScoreCardsWithDirections(int $scorePerCount, int $scoreCountDivider)
+    {
+        $cardCount = 0;
+        foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
+            foreach ($otherCard->getCardDef()->getAllAbilities() as $ability) {
+                if ($ability->getDirection() !== null) {
+                    $cardCount += 1;
+                    break;
+                }
+            }
+        }
+        return new ScoreProgress(
+            ($scorePerCount * intdiv($cardCount, $scoreCountDivider)),
+            $cardCount
+        );
+    }
+
+    protected function onScorePerCardsSets(int $scoreNbSet)
+    {
+        $countEvent = count(self::cardMgr()->getPlayerBoardEventCards($this->playerId));
+        if ($countEvent <= 0) {
+            return new ScoreProgress(0, 0);
+        }
+        $countTerrain = 0;
+        foreach (self::cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $card) {
+            if ($card->getCardDef()->isTerrain()) {
+                $countTerrain += 1;
+            }
+        }
+        if ($countTerrain <= 0) {
+            return new ScoreProgress(0, 0);
+        }
+        $countColor = [];
+        foreach (\EA\MULTICOLOR_COLORS as $color) {
+            $countColor[$color] = 0;
+        }
+
+        $cards = array_values(self::cardMgr()->getPlayerIslandClimateTableauCards($this->playerId));
+        // Filter to keep only color cards
+        $cards = array_values(array_filter($cards, function ($c) {
+            foreach (\EA\MULTICOLOR_COLORS as $color) {
+                if ($c->getCardDef()->getAbilityMatchingColor($color) !== null) {
+                    return true;
+                }
+            }
+            return false;
+        }));
+        $countColor = $this->countColorSets($cards, $countColor);
+        $minCountColor = 0;
+        if (count($countColor) > 0) {
+            $minCountColor = min($countColor);
+        }
+        $minCount = min($countEvent, $countTerrain, $minCountColor);
+        return new ScoreProgress($scoreNbSet * $minCount, $minCount);
+    }
+
+    private function countColorSets(array $cards, array $countColor)
+    {
+        if (count($cards) == 0) {
+            return $countColor;
+        }
+        $cardDef = $cards[0]->getCardDef();
+        $newSets = [];
+        foreach (\EA\MULTICOLOR_COLORS as $color) {
+            if ($cardDef->getAbilityMatchingColor($color) !== null) {
+                $countColor[$color] += 1;
+                $newSets[] = $this->countColorSets(array_slice($cards, 1), $countColor);
+                $countColor[$color] -= 1;
+            }
+        }
+        $smallestNumber = 0;
+        $smallestSet = [];
+        foreach ($newSets as $set) {
+            $small = 0;
+            if (count($set) > 0) {
+                $small = min($set);
+            };
+            if ($small > $smallestNumber) {
+                $smallestNumber = $small;
+                $smallestSet = $set;
+            }
+        }
+        return $smallestSet;
+    }
+
+    protected function onScorePerCardGerminate(int $scorePerCard, int $scoreDivisor, int $germinateId)
+    {
+        $filter = \EA\CardDef::germinateIdToFilter($germinateId);
+        $cardCount = 0;
+        foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
+            if ($filter($otherCard->getCardDef())) {
+                $cardCount += 1;
+            }
+        }
+        return new ScoreProgress(
+            ($scorePerCard * intdiv($cardCount, $scoreDivisor)),
+            $cardCount
+        );
+    }
 }
 
 class ScoreCard extends ScoreCardBase
@@ -320,9 +479,14 @@ class ScoreFauna extends ScoreCardBase
     protected function onScoreCard(\EA\Card $card)
     {
         $leafTokenMgr = self::getMgr('leaf_token');
-        $leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
-        $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($leafId, $this->playerId);
-        if (!$token->isOnFaunaBoard()) {
+        $token = null;
+        if (gameHasExpansionAbundance()) {
+            $token = $leafTokenMgr->getLeafTokenCanBeOnFaunaBoardByPositiondAndPlayerId($card->locationX, $card->locationY, $this->playerId);
+        } else {
+            $leafId = $leafTokenMgr->getLeafIdFromBoardLocation($card->locationX, $card->locationY);
+            $token = $leafTokenMgr->getLeafTokenByLeafIdAndPlayerId($leafId, $this->playerId);
+        }
+        if ($token === null || !$token->isOnFaunaBoard()) {
             return null;
         }
         if (isGameModeBeginner()) {
@@ -336,21 +500,47 @@ class ScoreFauna extends ScoreCardBase
 class ScoreFaunaBonus extends ScoreBase
 {
     private const FAUNA_BONUS_SCORE = 7;
+    private const FAUNA_BONUS_SCORE_EXPANSION_ABUNDANCE = 11;
+    private const GAIA_ABUNDANCE_LEAF_EXPANSION_ABUNDANCE = 5;
 
     public function __construct(int $playerId)
     {
         parent::__construct($playerId, null, \EA\SCORE_TYPE_ID_FAUNA);
     }
 
+    public static function getFaunaBonusScore()
+    {
+        if (gameHasExpansionAbundance()) {
+            return self::FAUNA_BONUS_SCORE_EXPANSION_ABUNDANCE;
+        } else {
+            return self::FAUNA_BONUS_SCORE;
+        }
+    }
+
     protected function onScore()
     {
         $leafTokenMgr = self::getMgr('leaf_token');
+        $score = null;
         foreach ($leafTokenMgr->getAll() as $token) {
             if ($token->playerId == $this->playerId && $token->isOnFaunaBoardTableauBonus()) {
-                return self::FAUNA_BONUS_SCORE;
+                $score = self::getFaunaBonusScore();
+                break;
             }
         }
-        return null;
+        if ($this->playerId == \EA\GAIA_PLAYER_ID && gameHasExpansionAbundance()) {
+            foreach ($leafTokenMgr->getAll() as $token) {
+                if (
+                    ($token->playerId == \EA\GAIA_PLAYER_ID && $token->isOnPlayerBoard())
+                    || $token->isOnGaiaAbundance()
+                ) {
+                    if ($score === null) {
+                        $score = 0;
+                    }
+                    $score += self::GAIA_ABUNDANCE_LEAF_EXPANSION_ABUNDANCE;
+                }
+            }
+        }
+        return $score;
     }
 }
 
@@ -368,6 +558,14 @@ class ScoreTerrainBrown extends ScoreCardBase
         \EA\AB_SCORE_REMAINING_CARD_IN_HAND => 'scoreRemainingCardInHand',
         \EA\AB_SCORE_CARD_IN_COMPOST => 'scoreCardInCompost',
         \EA\AB_SCORE_PER_TERRAIN  => 'scorePerTerrain',
+        // Abundance
+        \EA\AB_SCORE_PER_EVENT => 'scorePerEvent',
+        \EA\AB_SCORE_DIRECTION_DIFFERENT_COLOR => 'scoreDirectionDifferentColor',
+        \EA\AB_SCORE_PER_DIRECTIONAL_AID => 'scorePerDirectionalAid',
+        \EA\AB_SCORE_DIRECTION_DIFFERENT_GROWTH => 'scoreDirectionDifferentGrowth',
+        \EA\AB_SCORE_DIRECTION_DIFFERENT_SPROUT => 'scoreDirectionDifferentSprout',
+        \EA\AB_SCORE_PER_SET => 'scorePerSet',
+        \EA\AB_SCORE_PER_GERMINATE_CONDITION => 'scorePerGerminateCondition',
     ];
 
     public function __construct(int $playerId, int $cardId)
@@ -469,8 +667,14 @@ class ScoreTerrainBrown extends ScoreCardBase
                         }
                         break;
                     case \EA\AB_COND_PER_COLOR:
-                        if ($otherCard->getCardDef()->hasAbilityMatchingColor($scoreConditionType)) {
-                            $playerMax += 1;
+                        if ($scoreConditionType == \EA\AB_COLOR_MULTICOLOR) {
+                            if ($otherCard->getCardDef()->getAbilityForColor($scoreConditionType)) {
+                                $playerMax += 1;
+                            }
+                        } else {
+                            if ($otherCard->getCardDef()->hasAbilityMatchingColor($scoreConditionType)) {
+                                $playerMax += 1;
+                            }
                         }
                         break;
                     default:
@@ -595,6 +799,100 @@ class ScoreTerrainBrown extends ScoreCardBase
         }
         return ($cardCount * $scorePerCard);
     }
+
+    private function scorePerEvent(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $scorePerCard = array_shift($scores);
+        return $scorePerCard * count(self::cardMgr()->getPlayerBoardEventCards($this->playerId));
+    }
+
+    private function scoreDirectionDifferentColor(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        $cards = null;
+        switch ($direction) {
+            case \EA\AB_DIRECTION_ROW:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardRow($this->playerId, $card->cardId);
+                break;
+            case \EA\AB_DIRECTION_COLUMN:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardColumn($this->playerId, $card->cardId);
+                break;
+            default:
+                throw new \BgaSystemException("BUG! Invalid direction $direction");
+        }
+        if (
+            count($cards) == \EA\MAX_TABLEAU_SIZE
+            && $this->hasDifferentAbilityColorSet(array_values($cards), [])
+        ) {
+            return $score;
+        }
+        return 0;
+    }
+
+    private function scorePerDirectionalAid(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        return $this->onScoreCardsWithDirections($score, 1)->score;
+    }
+
+    private function scoreDirectionDifferentGrowth(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        $cards = null;
+        switch ($direction) {
+            case \EA\AB_DIRECTION_ROW:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardRow($this->playerId, $card->cardId);
+                break;
+            case \EA\AB_DIRECTION_COLUMN:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardColumn($this->playerId, $card->cardId);
+                break;
+            default:
+                throw new \BgaSystemException("BUG! Invalid direction $direction");
+        }
+        if (count($cards) == \EA\MAX_TABLEAU_SIZE) {
+            $growths = array_map(fn ($c) => $c->growthCount, $cards);
+            if (count(array_unique($growths)) == \EA\MAX_TABLEAU_SIZE) {
+                return $score;
+            }
+        }
+        return 0;
+    }
+
+    private function scoreDirectionDifferentSprout(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        $cards = null;
+        switch ($direction) {
+            case \EA\AB_DIRECTION_ROW:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardRow($this->playerId, $card->cardId);
+                break;
+            case \EA\AB_DIRECTION_COLUMN:
+                $cards = self::cardMgr()->getPlayerTableauCardsInCardColumn($this->playerId, $card->cardId);
+                break;
+            default:
+                throw new \BgaSystemException("BUG! Invalid direction $direction");
+        }
+        if (count($cards) == \EA\MAX_TABLEAU_SIZE) {
+            $sprouts = array_map(fn ($c) => $c->sproutCount, $cards);
+            if (count(array_unique($sprouts)) == \EA\MAX_TABLEAU_SIZE) {
+                return $score;
+            }
+        }
+        return 0;
+    }
+
+    private function scorePerGerminateCondition(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        $germinateId = array_shift($scores);
+        return $this->onScorePerCardGerminate($score, 1, $germinateId)->score;
+    }
+
+    private function scorePerSet(\EA\Card $card, array $scores, ?int $direction)
+    {
+        $score = array_shift($scores);
+        return $this->onScorePerCardsSets($score)->score;
+    }
 }
 
 class ScoreEcosystem extends ScoreCardBase
@@ -641,6 +939,7 @@ class ScoreEcosystem extends ScoreCardBase
         \EA\AB_ECO_PER_CARD_WITH_LESS_GROWTH_MAX_SCORE  => 'scorePerCardWithLessGrowthMaxScore',
         \EA\AB_ECO_PER_CARD_WITH_MORE_GROWTH_MAX_SCORE  => 'scorePerCardWithMoreGrowthMaxScore',
         \EA\AB_ECO_PER_CARD_WITH_FILLED_FIECES  => 'scorePerCardWithFilledFieces',
+        \EA\AB_ECO_GERMINATE_CONDITION  => 'scorePerCardGerminate',
     ];
 
     public function __construct(int $playerId, int $cardId)
@@ -680,6 +979,7 @@ class ScoreEcosystem extends ScoreCardBase
             return 0;
         }
         $cardCount = min($cardCount, count($scores));
+        $this->setExtraProgress($cardCount);
         return $scores[$cardCount - 1];
     }
 
@@ -714,7 +1014,9 @@ class ScoreEcosystem extends ScoreCardBase
             }
         }
         $this->setExtraScore(implode('-', array_map(fn ($c) => $c->cardId, $cardList)));
-        return ($scoreScorePerCard * min(count($cardList), $scoreMaxCardCount));
+        $progress = min(count($cardList), $scoreMaxCardCount);
+        $this->setExtraProgress($progress);
+        return ($scoreScorePerCard * $progress);
     }
 
     private function scorePerHabitat(\EA\Card $card, array $scores)
@@ -728,6 +1030,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -748,6 +1051,7 @@ class ScoreEcosystem extends ScoreCardBase
                 }
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -755,7 +1059,9 @@ class ScoreEcosystem extends ScoreCardBase
     {
         $scorePerSoil = array_shift($scores);
         $scoreMax = array_shift($scores);
-        return min($scoreMax, $scorePerSoil * self::getMgr('player_state')->getPlayerSoilCount($this->playerId));
+        $progress = self::getMgr('player_state')->getPlayerSoilCount($this->playerId);
+        $this->setExtraProgress($progress);
+        return min($scoreMax, $scorePerSoil * $progress);
     }
 
     private function scoreRemainingCardInHand(\EA\Card $card, array $scores)
@@ -763,7 +1069,9 @@ class ScoreEcosystem extends ScoreCardBase
         $scorePerCount = array_shift($scores);
         $scoreCountDivider = array_shift($scores);
         $scoreMax = array_shift($scores);
-        return min($scoreMax, $scorePerCount * intdiv(count(self::cardMgr()->getPlayerHandCards($this->playerId)), $scoreCountDivider));
+        $progress = count(self::cardMgr()->getPlayerHandCards($this->playerId));
+        $this->setExtraProgress($progress);
+        return min($scoreMax, $scorePerCount * intdiv($progress, $scoreCountDivider));
     }
 
     private function scoreCardInCompost(\EA\Card $card, array $scores)
@@ -771,7 +1079,9 @@ class ScoreEcosystem extends ScoreCardBase
         $scorePerCount = array_shift($scores);
         $scoreCountDivider = array_shift($scores);
         $scoreMax = array_shift($scores);
-        return min($scoreMax, $scorePerCount * intdiv(count(self::cardMgr()->getPlayerCompostCards($this->playerId)), $scoreCountDivider));
+        $progress = count(self::cardMgr()->getPlayerCompostCards($this->playerId));
+        $this->setExtraProgress($progress);
+        return min($scoreMax, $scorePerCount * intdiv($progress, $scoreCountDivider));
     }
 
     private function scoreCardsWithLessCost(\EA\Card $card, array $scores)
@@ -786,6 +1096,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
     }
 
@@ -801,6 +1112,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
     }
 
@@ -815,6 +1127,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
     }
 
@@ -831,6 +1144,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * $cardCount);
     }
 
@@ -839,7 +1153,9 @@ class ScoreEcosystem extends ScoreCardBase
         $scorePerCount = array_shift($scores);
         $scoreCountDivider = array_shift($scores);
         $scoreMax = array_shift($scores);
-        return min($scoreMax, $scorePerCount * intdiv(count(self::cardMgr()->getPlayerBoardEventCards($this->playerId)), $scoreCountDivider));
+        $progress = count(self::cardMgr()->getPlayerBoardEventCards($this->playerId));
+        $this->setExtraProgress($progress);
+        return min($scoreMax, $scorePerCount * intdiv($progress, $scoreCountDivider));
     }
 
     private function getCardsForDirection(int $scoreDirection)
@@ -870,35 +1186,8 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
-    }
-
-    private function hasDifferentAbilityColorSet(array $cards, array $seenColorSet)
-    {
-        if (count($cards) == 0) {
-            return true;
-        }
-        $firstCardDef = $cards[0]->getCardDef();
-        foreach ($firstCardDef->getAllAbilities() as $ability) {
-            if ($ability->color == \EA\AB_COLOR_MULTICOLOR) {
-                foreach (\EA\MULTICOLOR_COLORS as $color) {
-                    if (array_key_exists($color, $seenColorSet)) {
-                        continue;
-                    }
-                    if ($this->hasDifferentAbilityColorSet(array_slice($cards, 1), array_replace($seenColorSet, [$color => true]))) {
-                        return true;
-                    }
-                }
-            } else {
-                if (array_key_exists($ability->color, $seenColorSet)) {
-                    continue;
-                }
-                if ($this->hasDifferentAbilityColorSet(array_slice($cards, 1), array_replace($seenColorSet, [$ability->color => true]))) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private function scoreDirectionWithSameAbilityColor(\EA\Card $card, array $scores)
@@ -915,6 +1204,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -957,6 +1247,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
     }
 
@@ -971,6 +1262,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
     }
 
@@ -978,16 +1270,9 @@ class ScoreEcosystem extends ScoreCardBase
     {
         $scorePerCount = array_shift($scores);
         $scoreCountDivider = array_shift($scores);
-        $cardCount = 0;
-        foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
-            foreach ($otherCard->getCardDef()->getAllAbilities() as $ability) {
-                if ($ability->getDirection() !== null) {
-                    $cardCount += 1;
-                    break;
-                }
-            }
-        }
-        return ($scorePerCount * intdiv($cardCount, $scoreCountDivider));
+        $sp = $this->onScoreCardsWithDirections($scorePerCount, $scoreCountDivider);
+        $this->setExtraProgress($sp->progress);
+        return $sp->score;
     }
 
     private function scoreDirectionWithDifferentScore(\EA\Card $card, array $scores)
@@ -1005,6 +1290,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1019,6 +1305,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1033,6 +1320,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1051,6 +1339,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1069,6 +1358,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1080,6 +1370,7 @@ class ScoreEcosystem extends ScoreCardBase
         foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
             $sproutCount += $otherCard->sproutCount;
         }
+        $this->setExtraProgress($sproutCount);
         return $scorePerCount * intdiv($sproutCount, $scoreCountDivider);
     }
 
@@ -1091,70 +1382,16 @@ class ScoreEcosystem extends ScoreCardBase
         foreach ($this->cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $otherCard) {
             $growthCount += $otherCard->growthCount;
         }
+        $this->setExtraProgress($growthCount);
         return $scorePerCount * intdiv($growthCount, $scoreCountDivider);
     }
 
     private function scorePerCardsSets(\EA\Card $card, array $scores)
     {
         $scoreNbSet = array_shift($scores);
-
-        $countEvent = count(self::cardMgr()->getPlayerBoardEventCards($this->playerId));
-        $countTerrain = 0;
-        foreach (self::cardMgr()->getPlayerIslandClimateTableauCards($this->playerId) as $card) {
-            if ($card->getCardDef()->isTerrain()) {
-                $countTerrain += 1;
-            }
-        }
-        $countColor = [];
-        foreach (\EA\MULTICOLOR_COLORS as $color) {
-            $countColor[$color] = 0;
-        }
-
-        $cards = array_values(self::cardMgr()->getPlayerIslandClimateTableauCards($this->playerId));
-        // Filter to keep only color cards
-        $cards = array_values(array_filter($cards, function ($c) {
-            foreach (\EA\MULTICOLOR_COLORS as $color) {
-                if ($c->getCardDef()->getAbilityMatchingColor($color) !== null) {
-                    return true;
-                }
-            }
-            return false;
-        }));
-        $countColor = $this->countColorSets($cards, $countColor);
-        $minCountColor = 0;
-        if (count($countColor) > 0) {
-            $minCountColor = min($countColor);
-        }
-        return ($scoreNbSet * min($countEvent, $countTerrain, $minCountColor));
-    }
-
-    private function countColorSets(array $cards, array $countColor)
-    {
-        if (count($cards) == 0) {
-            return $countColor;
-        }
-        $cardDef = $cards[0]->getCardDef();
-        $newSets = [];
-        foreach (\EA\MULTICOLOR_COLORS as $color) {
-            if ($cardDef->getAbilityMatchingColor($color) !== null) {
-                $countColor[$color] += 1;
-                $newSets[] = $this->countColorSets(array_slice($cards, 1), $countColor);
-                $countColor[$color] -= 1;
-            }
-        }
-        $smallestNumber = 0;
-        $smallestSet = [];
-        foreach ($newSets as $set) {
-            $small = 0;
-            if (count($set) > 0) {
-                $small = min($set);
-            };
-            if ($small > $smallestNumber) {
-                $smallestNumber = $small;
-                $smallestSet = $set;
-            }
-        }
-        return $smallestSet;
+        $sp = $this->onScorePerCardsSets($scoreNbSet);
+        $this->setExtraProgress($sp->progress);
+        return $sp->score;
     }
 
     private function scorePerCardsWithTwoAbilities(\EA\Card $card, array $scores)
@@ -1167,6 +1404,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1184,6 +1422,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1196,6 +1435,8 @@ class ScoreEcosystem extends ScoreCardBase
         $cardTypes = null;
         if ($firstCardDef->type == \EA\CARD_TYPE_JOKER) {
             $cardTypes = \EA\CARD_TYPES_FOR_JOKER;
+        } else if ($firstCardDef->type == \EA\CARD_TYPE_TREE_BUSH) {
+            $cardTypes = \EA\CARD_TYPES_FOR_TREE_BUSH;
         } else {
             $cardTypes = [$firstCardDef->type];
         }
@@ -1224,6 +1465,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1236,6 +1478,8 @@ class ScoreEcosystem extends ScoreCardBase
         $cardTypes = null;
         if ($firstCardDef->type == \EA\CARD_TYPE_JOKER) {
             $cardTypes = \EA\CARD_TYPES_FOR_JOKER;
+        } else if ($firstCardDef->type == \EA\CARD_TYPE_TREE_BUSH) {
+            $cardTypes = \EA\CARD_TYPES_FOR_TREE_BUSH;
         } else {
             $cardTypes = [$firstCardDef->type];
         }
@@ -1264,6 +1508,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1314,6 +1559,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $directionCount += 1;
             }
         }
+        $this->setExtraProgress($directionCount);
         return ($scorePerCount * $directionCount);
     }
 
@@ -1330,6 +1576,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1346,6 +1593,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1362,6 +1610,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1382,6 +1631,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1411,6 +1661,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1440,6 +1691,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1453,6 +1705,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1466,6 +1719,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1484,6 +1738,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1502,6 +1757,7 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return $scorePerCount * intdiv($cardCount, $scoreCountDivider);
     }
 
@@ -1532,6 +1788,17 @@ class ScoreEcosystem extends ScoreCardBase
                 $cardCount += 1;
             }
         }
+        $this->setExtraProgress($cardCount);
         return ($cardCount * $scorePerCard);
+    }
+
+    private function scorePerCardGerminate(\EA\Card $card, array $scores)
+    {
+        $scorePerCard = array_shift($scores);
+        $scoreDivisor = array_shift($scores);
+        $germinateId = array_shift($scores);
+        $sp = $this->onScorePerCardGerminate($scorePerCard, $scoreDivisor, $germinateId);
+        $this->setExtraProgress($sp->progress);
+        return $sp->score;
     }
 }

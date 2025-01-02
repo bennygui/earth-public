@@ -367,12 +367,14 @@ define([
                 let habitatWet = 0;
                 let habitatRocky = 0;
                 let habitatCold = 0;
+                let abilityNeighbour = 0;
                 if (this.playerIslandCardId[playerId] !== null) {
                     const def = gameui.gamedatas.carddefs[this.playerIslandCardId[playerId]];
                     habitatSunny += (def.isHabitatSunny ? 1 : 0);
                     habitatWet += (def.isHabitatWet ? 1 : 0);
                     habitatRocky += (def.isHabitatRocky ? 1 : 0);
                     habitatCold += (def.isHabitatCold ? 1 : 0);
+                    abilityNeighbour += (this.cardDefHasAbilityNeighbourNotBlack(def) ? 1 : 0);
                 }
                 if (this.playerClimateCardId[playerId] !== null) {
                     const def = gameui.gamedatas.carddefs[this.playerClimateCardId[playerId]];
@@ -380,6 +382,7 @@ define([
                     habitatWet += (def.isHabitatWet ? 1 : 0);
                     habitatRocky += (def.isHabitatRocky ? 1 : 0);
                     habitatCold += (def.isHabitatCold ? 1 : 0);
+                    abilityNeighbour += (this.cardDefHasAbilityNeighbourNotBlack(def) ? 1 : 0);
                 }
                 for (const card of tableauCards) {
                     if (card.cardId === null) {
@@ -387,12 +390,18 @@ define([
                     }
                     const def = gameui.gamedatas.carddefs[card.cardId];
 
-                    cardType[def.type] += 1;
+                    let type = def.type;
+                    if (type == (gameui.CARD_TYPE_BUSH | gameui.CARD_TYPE_TREE)) {
+                        type = gameui.CARD_TYPE_JOKER;
+                    }
+                    cardType[type] += 1;
 
                     habitatSunny += (def.isHabitatSunny ? 1 : 0);
                     habitatWet += (def.isHabitatWet ? 1 : 0);
                     habitatRocky += (def.isHabitatRocky ? 1 : 0);
                     habitatCold += (def.isHabitatCold ? 1 : 0);
+                    
+                    abilityNeighbour += (this.cardDefHasAbilityNeighbourNotBlack(def) ? 1 : 0);
 
                     sprout += parseInt(card.sproutCount);
                     if (def.sproutMax !== null) {
@@ -418,6 +427,22 @@ define([
                 gameui.counters[playerId].habitatWet.toValue(habitatWet, isInstantaneous);
                 gameui.counters[playerId].habitatRocky.toValue(habitatRocky, isInstantaneous);
                 gameui.counters[playerId].habitatCold.toValue(habitatCold, isInstantaneous);
+                
+                gameui.counters[playerId].abilityNeighbour.toValue(abilityNeighbour, isInstantaneous);
+            },
+
+            cardDefHasAbilityNeighbourNotBlack(def) {
+                for (const ab of def.abilities) {
+                    if (ab.color == gameui.AB_COLOR_BLACK) {
+                        continue;
+                    }
+                    for (const c of ab.conditions) {
+                        if (c.condition == gameui.AB_COND_PER_NEIGHBOUR) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
             },
 
             updatePlayerTableauOverview(playerId, tableauCards) {

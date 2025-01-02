@@ -362,7 +362,7 @@ class CompostFromDeck extends \BX\Action\BaseActionCommandNoUndo
 
     public function do(\BX\Action\BaseActionCommandNotifier $notifier)
     {
-        if ($this->compostFromDeckCount <= 0) {
+        if ($this->compostFromDeckCount < 0) {
             throw new \BgaSystemException("BUG! compostFromDeckCount is invalid: {$this->compostFromDeckCount}");
         }
 
@@ -462,7 +462,7 @@ class GainCompostFromHand extends \BX\Action\BaseActionCommand
     {
         parent::__construct($playerId);
         $this->nbCard = $nbCard;
-        if ($nbCard <= 0) {
+        if ($nbCard < 0) {
             throw new \BgaSystemException("BUG! Invalid nbCard: $nbCard");
         }
     }
@@ -509,20 +509,31 @@ class PlaceSprout extends \BX\Action\BaseActionCommand
 {
     private $placedSproutList;
     private $undoTableau;
+    private $undoPlayerExchange;
+    private $fromEndTurnPlaceSprout;
 
-    public function __construct(int $playerId, array $placedSproutList)
+    public function __construct(int $playerId, array $placedSproutList, bool $fromEndTurnPlaceSprout = false)
     {
         parent::__construct($playerId);
         $this->placedSproutList = $placedSproutList;
         if (count($placedSproutList) % 2 != 0) {
             throw new \BgaSystemException('BUG! placedSproutList is not even');
         }
+        $this->fromEndTurnPlaceSprout = $fromEndTurnPlaceSprout;
     }
 
     public function do(\BX\Action\BaseActionCommandNotifier $notifier)
     {
+        if ($this->fromEndTurnPlaceSprout === null) {
+            $this->fromEndTurnPlaceSprout = false;
+        }
+
         $cardMgr = self::getMgr('card');
-        $this->undoTableau = \BX\META\deepClone($cardMgr->getPlayerTableauCards($this->playerId, $this->playerId));
+        $this->undoTableau = \BX\Meta\deepClone($cardMgr->getPlayerTableauCards($this->playerId, $this->playerId));
+
+        $playerExchangeMgr = self::getMgr('player_exchange');
+        $pe = $playerExchangeMgr->getBySameFromToPlayerId($this->playerId);
+        $this->undoPlayerExchange = \BX\Meta\deepClone($pe);
 
         $nbPlacedSprout = 0;
         $placedSprout = [];
@@ -535,6 +546,25 @@ class PlaceSprout extends \BX\Action\BaseActionCommand
         if ($nbPlacedSprout > $ps->gainedSprout) {
             throw new \BgaUserException($notifier->_('You must place less sprouts'));
         }
+
+        $gainedCardIdList = $ps->getGainedCardIdList();
+        $isGainedCardIdListDivided = $ps->isGainedCardIdListDivided();
+
+        $keepSprout = ($ps->gainedSprout - $nbPlacedSprout);
+        if ($this->fromEndTurnPlaceSprout) {
+            $keepSprout = 0;
+            $pe->modifyAction();
+            $pe->sproutTake += $nbPlacedSprout;
+        } else {
+            if (!gameHasExpansionAbundance() || $gainedCardIdList !== null || $isGainedCardIdListDivided) {
+                $keepSprout = 0;
+            }
+            if ($keepSprout != 0) {
+                $pe->modifyAction();
+                $pe->sproutGive += $keepSprout;
+            }
+        }
+
         if ($ps->gainedSprout == 0) {
             $ps->modifyAction();
             $ps->clearSprout();
@@ -542,14 +572,12 @@ class PlaceSprout extends \BX\Action\BaseActionCommand
             return;
         }
 
-        $gainedCardIdList = $ps->getGainedCardIdList();
         $maxGainedPerCard = 0;
         if ($gainedCardIdList === null) {
             $maxGainedPerCard = null;
         } else if (count($gainedCardIdList) > 0) {
-           $maxGainedPerCard = floor($ps->gainedSprout / count($gainedCardIdList));
+            $maxGainedPerCard = floor($ps->gainedSprout / count($gainedCardIdList));
         }
-        $isGainedCardIdListDivided = $ps->isGainedCardIdListDivided();
 
         $ps->modifyAction();
         $ps->clearSprout();
@@ -597,12 +625,34 @@ class PlaceSprout extends \BX\Action\BaseActionCommand
                 'tableauCards' => \EA\cardsToCompactUI($cardMgr->getPlayerTableauCards($this->playerId, $this->playerId)),
             ]
         );
+        if ($keepSprout > 0) {
+            $notifier->notify(
+                NTF_UPDATE_PLAYER_EXCHANGE,
+                clienttranslate('${player_name} places keeps ${sproutCount} on their player board'),
+                [
+                    'fromPlayerId' => $this->playerId,
+                    'toPlayerId' => $this->playerId,
+                    'sproutCount' => $keepSprout,
+                    'playerExchange' => $pe,
+                ]
+            );
+        } else if ($this->fromEndTurnPlaceSprout) {
+            $notifier->notifyNoMessage(
+                NTF_UPDATE_PLAYER_EXCHANGE,
+                [
+                    'playerExchange' => $pe,
+                ]
+            );
+        }
     }
 
     public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
     {
         if ($this->undoTableau !== null) {
             $notifier->notifyNoMessage(NTF_UPDATE_PLAYER_TABLEAU, ['tableauCards' => \EA\cardsToCompactUI($this->undoTableau)]);
+        }
+        if ($this->undoPlayerExchange !== null) {
+            $notifier->notifyNoMessage(NTF_UPDATE_PLAYER_EXCHANGE, ['playerExchange' => $this->undoPlayerExchange]);
         }
     }
 }
@@ -988,5 +1038,245 @@ class GainDrawCardFromCompost extends \BX\Action\BaseActionCommandNoUndo
                 'cardCounts' => $cardMgr->getCardCountsUIForPlayerId($this->playerId),
             ]
         );
+    }
+}
+
+class GainSeed extends \BX\Action\BaseActionCommand
+{
+    private $nbSeed;
+    private $fromCardId;
+    private $nbSeedBefore;
+
+    public function __construct(int $playerId, int $nbSeed, ?int $fromCardId = null)
+    {
+        parent::__construct($playerId);
+        $this->nbSeed = $nbSeed;
+        $this->fromCardId = $fromCardId;
+        if ($nbSeed < 0) {
+            throw new \BgaSystemException("BUG! Invalid nbSeed: $nbSeed");
+        }
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerStateMgr = self::getMgr('player_state');
+        $ps = $playerStateMgr->getByPlayerId($this->playerId);
+        $this->nbSeedBefore = $ps->seedCount;
+        $ps->modifyAction();
+        $ps->addSeed($this->nbSeed);
+        self::getMgr('player_state')->incStatNbSeedGained($this->playerId, $this->nbSeed);
+
+        $notifier->notify(
+            NTF_PLAYER_GAIN_SEED,
+            clienttranslate('${player_name} gains ${gainSeedCount} ${seedIcon}'),
+            [
+                'gainSeedCount' => $this->nbSeed,
+                'totalSeedCount' => $ps->seedCount,
+                'fromCardId' => $this->fromCardId,
+                'seedIcon' => clienttranslate('seed'),
+            ]
+        );
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $notifier->notifyNoMessage(
+            NTF_PLAYER_PAY_SEED,
+            [
+                'totalSeedCount' => $this->nbSeedBefore,
+            ]
+        );
+    }
+}
+
+class SproutAllOthers extends \BX\Action\BaseActionCommand
+{
+    private $nbSprout;
+    private $fromCardId;
+    private $undoPlayerExchanges;
+
+    public function __construct(int $playerId, int $nbSprout, int $fromCardId)
+    {
+        parent::__construct($playerId);
+        $this->nbSprout = $nbSprout;
+        $this->fromCardId = $fromCardId;
+        if ($nbSprout <= 0) {
+            throw new \BgaSystemException("BUG! Invalid nbSprout: $nbSprout");
+        }
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerExchangeMgr = self::getMgr('player_exchange');
+        $playerExchanges = $playerExchangeMgr->getByFromPlayerIdExceptSame($this->playerId);
+        $this->undoPlayerExchanges = \BX\Meta\deepClone($playerExchanges);
+
+        foreach ($playerExchanges as $pe) {
+            $pe->modifyAction();
+            $pe->sproutGive += $this->nbSprout;
+        }
+
+        $notifier->notify(
+            \BX\Action\NTF_MESSAGE,
+            clienttranslate('${player_name} gives ${nbSprout} ${sproutIcon} to all other player(s)'),
+            [
+                'nbSprout' => $this->nbSprout,
+                'sproutIcon' => 'sprout(s)',
+                'i18n' => ['sproutIcon'],
+            ]
+        );
+
+        foreach ($playerExchanges as $pe) {
+            $notifier->notifyNoMessage(
+                NTF_UPDATE_PLAYER_EXCHANGE,
+                [
+                    'fromPlayerId' => $this->playerId,
+                    'toPlayerId' => $pe->toPlayerId,
+                    'playerExchange' => $pe,
+                ]
+            );
+        }
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        if ($this->undoPlayerExchanges !== null) {
+            foreach ($this->undoPlayerExchanges as $pe) {
+                $notifier->notifyNoMessage(NTF_UPDATE_PLAYER_EXCHANGE, ['playerExchange' => $pe]);
+            }
+        }
+    }
+}
+
+class SproutChooseOne extends \BX\Action\BaseActionCommand
+{
+    private $toPlayerId;
+    private $nbSprout;
+    private $fromCardId;
+    private $undoPlayerExchange;
+
+    public function __construct(int $playerId, int $toPlayerId, int $nbSprout, int $fromCardId)
+    {
+        parent::__construct($playerId);
+        $this->toPlayerId = $toPlayerId;
+        $this->nbSprout = $nbSprout;
+        $this->fromCardId = $fromCardId;
+        if ($nbSprout <= 0) {
+            throw new \BgaSystemException("BUG! Invalid nbSprout: $nbSprout");
+        }
+        if ($playerId == $toPlayerId) {
+            throw new \BgaSystemException("BUG! toPlayerId cannot by the same as playerId $playerId");
+        }
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerMgr = self::getMgr('player');
+        $toPlayer = $playerMgr->getByPlayerId($this->toPlayerId);
+        if ($toPlayer === null) {
+            throw new \BgaSystemException("BUG! Player {$this->toPlayerId} does not exist");
+        }
+
+        $playerExchangeMgr = self::getMgr('player_exchange');
+        $playerExchange = $playerExchangeMgr->getByFromPlayerIdToPlayerId($this->playerId, $this->toPlayerId);
+        $this->undoPlayerExchange = \BX\Meta\deepClone($playerExchange);
+
+        $playerExchange->modifyAction();
+        $playerExchange->sproutGive += $this->nbSprout;
+
+        $notifier->notify(
+            NTF_UPDATE_PLAYER_EXCHANGE,
+            clienttranslate('${player_name} gives ${nbSprout} ${sproutIcon} to ${player_name2}'),
+            [
+                'fromPlayerId' => $this->playerId,
+                'toPlayerId' => $this->toPlayerId,
+                'playerExchange' => $playerExchange,
+                'nbSprout' => $this->nbSprout,
+                'sproutIcon' => 'sprout(s)',
+                'player_name2' => $toPlayer->playerName,
+                'i18n' => ['sproutIcon'],
+            ]
+        );
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        if ($this->undoPlayerExchange !== null) {
+            $notifier->notifyNoMessage(NTF_UPDATE_PLAYER_EXCHANGE, ['playerExchange' => $this->undoPlayerExchange]);
+        }
+    }
+}
+
+class GainSproutChooseOne extends \BX\Action\BaseActionCommand
+{
+    private $nbSproutChooseOne;
+
+    public function __construct(int $playerId, int $nbSproutChooseOne)
+    {
+        parent::__construct($playerId);
+        $this->nbSproutChooseOne = $nbSproutChooseOne;
+        if ($nbSproutChooseOne < 0) {
+            throw new \BgaSystemException("BUG! Invalid nbSproutChooseOne: $nbSproutChooseOne");
+        }
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerStateMgr = self::getMgr('player_state');
+        $ps = $playerStateMgr->getByPlayerId($this->playerId);
+        $ps->modifyAction();
+        $ps->setSproutChooseOne($this->nbSproutChooseOne);
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+    }
+}
+
+class PlaceSproutChooseOne extends \BX\Action\BaseActionCommand
+{
+    private $toPlayerId;
+    private $fromCardId;
+    private $sproutChooseOne;
+
+    public function __construct(int $playerId, ?int $toPlayerId, int $fromCardId)
+    {
+        parent::__construct($playerId);
+        $this->toPlayerId = $toPlayerId;
+        $this->fromCardId = $fromCardId;
+        if ($playerId == $toPlayerId) {
+            throw new \BgaSystemException("BUG! toPlayerId cannot by the same as playerId $playerId");
+        }
+    }
+
+    public function do(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        $playerStateMgr = self::getMgr('player_state');
+        $ps = $playerStateMgr->getByPlayerId($this->playerId);
+        if ($ps->gainedSproutChooseOne <= 0) {
+            if ($this->toPlayerId !== null) {
+                throw new \BgaSystemException("BUG! toPlayerId must be null");
+            }
+            return;
+        }
+        if ($this->toPlayerId === null) {
+            throw new \BgaSystemException("BUG! toPlayerId must not be null");
+        }
+        $this->sproutChooseOne = new SproutChooseOne(
+            $this->playerId,
+            $this->toPlayerId,
+            $ps->gainedSproutChooseOne,
+            $this->fromCardId
+        );
+        $this->sproutChooseOne->do($notifier);
+        $ps->modifyAction();
+        $ps->clearSproutChooseOne();
+    }
+
+    public function undo(\BX\Action\BaseActionCommandNotifier $notifier)
+    {
+        if ($this->sproutChooseOne !== null) {
+            $this->sproutChooseOne->undo($notifier);
+        }
     }
 }

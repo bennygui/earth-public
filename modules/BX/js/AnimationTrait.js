@@ -48,14 +48,72 @@ define([
                 gameui.fadeOutAndDestroy(numberElem, config.fadeDuration, config.displayDuration);
             },
 
+            animateOverScaleElement(elem, appear, isInstantaneous) {
+                if (isInstantaneous || this.isFastMode()) {
+                    return Promise.resolve();
+                }
+                return new Promise((resolve, reject) => {
+                    const overScaleAnim = new dojo.Animation({
+                        curve: appear ? [0.0, 1.5] : [1, 1.5],
+                        duration: 200,
+                        onAnimate: (v) => {
+                            elem.style.transform = 'scale(' + v + ')';
+                        },
+                        onEnd: () => {
+                            const reScaleAnim = new dojo.Animation({
+                                curve: appear ? [1.5, 1] : [1.5, 0],
+                                duration: 200,
+                                onAnimate: (v) => {
+                                    elem.style.transform = 'scale(' + v + ')';
+                                },
+                                onEnd: () => {
+                                    elem.style.transform = '';
+                                    resolve();
+                                },
+                            });
+                            reScaleAnim.play();
+                        },
+                    });
+                    overScaleAnim.play();
+                });
+            },
+
             // From https://github.com/bga-devs/tisaac-boilerplate with some modifications
-            isFastMode() {
+            setBXFastMode(isFast = true) {
+                this.bxIsFastMode = isFast;
+            },
+            isBXFastMode() {
+                return this.isTrue(this.bxIsFastMode);
+            },
+            isBGAFastMode() {
                 return this.instantaneousMode;
+            },
+            isFastMode() {
+                return (this.isBGAFastMode() || this.isBXFastMode());
+            },
+            initDefaultSlideDuration() {
+                if (!this.defaultSlideDuration) {
+                    this.defaultSlideDuration = 500;
+                }
+            },
+            resetDefaultSlideDuration() {
+                delete this.defaultSlideDuration;
+                this.initDefaultSlideDuration();
+            },
+            setDefaultSlideDuration(duration) {
+                this.initDefaultSlideDuration();
+                const prev = this.defaultSlideDuration;
+                this.defaultSlideDuration = duration;
+                return prev;
+            },
+            getDefaultSlideDuration() {
+                this.initDefaultSlideDuration();
+                return this.defaultSlideDuration;
             },
             // Slide with pos option is buggy, watch out when using it
             slide(mobileElt, targetElt, options = {}) {
                 let config = Object.assign({
-                    duration: 500,
+                    duration: this.getDefaultSlideDuration(),
                     delay: 0,
                     destroy: false,
                     attach: true,
@@ -182,6 +240,16 @@ define([
                 if (typeof relation == 'undefined') {
                     relation = 'last';
                 }
+                const boundingClientRectZoomScale = this.getBoundingClientRectZoomScale(new_parent);
+                let zoom = this.interface_autoscale === true ? (this.gameinterface_zoomFactor || 1) : 1;
+                if (zoom < 1 && boundingClientRectZoomScale == 1) {
+                    // in case the browser doesn't handle correctly the zoom scale on dojo.position, we consider the zoom is not set
+                    zoom = 1;
+                }
+                if (zoom <= 0) {
+                    zoom = 1;
+                }
+
                 var src = dojo.position(mobile);
                 dojo.style(mobile, 'position', 'absolute');
                 dojo.place(mobile, new_parent, relation);
@@ -190,7 +258,7 @@ define([
                 var cbox = dojo.contentBox(mobile);
                 var left = box.l + src.x - tgt.x;
                 var top = box.t + src.y - tgt.y;
-                this.positionObjectDirectly(mobile, left, top);
+                this.positionObjectDirectly(mobile, left / zoom, top / zoom);
                 box.l += box.w - cbox.w;
                 box.t += box.h - cbox.h;
                 return box;
@@ -204,22 +272,40 @@ define([
                 });
                 dojo.style(mobileObj, 'left'); // bug? re-compute style
             },
+            // check the zoom scale applied on an element.
+            // on old browsers (Chrome < 128), the zoom factor isn't applied to dojo.position (=getBoundingClientRect)
+            getBoundingClientRectZoomScale(obj) {
+                const zoom = Math.round((this.interface_autoscale === true ? (this.gameinterface_zoomFactor || 1) : 1) * 1000) / 1000;
+
+                const object = obj ? $(obj) : document.getElementById('page-content');
+                const position = dojo.position(object);
+                if (position.w > 0) {
+                    const zoomScale = Math.round(position.w / object.offsetWidth * 1000) / 1000;
+                    return zoomScale > zoom ? 1 : zoomScale;
+                } else if (position.h > 0) {
+                    const zoomScale = Math.round(position.h / object.offsetHeight * 1000) / 1000;
+                    return zoomScale > zoom ? 1 : zoomScale;
+                } else {
+                    return 1;
+                }
+            },
             /*
              * Wrap a node inside a flip container to trigger a flip animation before replacing with another node
              */
-            flipAndReplace(target, newNode) {
+            flipAndReplace(target, newNode, horizontal = true) {
                 // To be able to change the duration, would need to change the css
                 const duration = 1000;
                 // Fast replay mode
                 if (this.isFastMode()) {
                     dojo.place(newNode, target, 'replace');
-                    return;
+                    return Promise.resolve();
                 }
 
                 return new Promise((resolve, reject) => {
                     // Wrap everything inside a flip container
-                    let container = dojo.place(
-                        `<div class="bx-flip-container bx-flipped">
+                    const verticalClass = (horizontal ? '' : 'bx-flip-vertical');
+                    const container = dojo.place(
+                        `<div class="bx-flip-container bx-flipped ${verticalClass}">
                             <div class="bx-flip-inner">
                                <div class="bx-flip-front"></div>
                                <div class="bx-flip-back"></div>
@@ -263,7 +349,7 @@ define([
                 element.classList.add('bx-phantom');
 
                 animElem.id = id;
-                animElem.style.transition = 'transform ' + (duration/2) + 'ms ease-in-out';
+                animElem.style.transition = 'transform ' + (duration / 2) + 'ms ease-in-out';
                 element.parentNode.insertBefore(animElem, element);
                 animElem.offsetWidth; // Needed to trigger the transition
                 let prevTransform = getComputedStyle(animElem).transform;
@@ -273,13 +359,13 @@ define([
 
                 return this.wait(1)
                     .then(() => animElem.style.transform = prevTransform + ' scale(1.5)')
-                    .then(() => this.wait(duration/2 + zoomWait))
+                    .then(() => this.wait(duration / 2 + zoomWait))
                     .then(() => animElem.style.removeProperty('transform'))
-                    .then(() => this.wait(duration/2))
+                    .then(() => this.wait(duration / 2))
                     .then(() => {
-                    element.classList.remove('bx-phantom');
-                    dojo.destroy(animElem);
-                });
+                        element.classList.remove('bx-phantom');
+                        dojo.destroy(animElem);
+                    });
             }
         });
     });

@@ -41,7 +41,7 @@ trait CardDefMgrGaia
                 ->build(),
             (new CardDefBuilder())->gaiaId(365)->name(clienttranslate("Plant"))
                 ->ability((new AbilityBuilder())->green()
-                    ->desc('Player: Plant one card, draw 1 card, activate breen abilities. Gaia: Draw and add 3 cards to their Earth cards.')->build())
+                    ->desc('Player: Plant one card, draw 1 card, activate green abilities. Gaia: Draw and add 3 cards to their Earth cards.')->build())
                 ->build(),
         ];
     }

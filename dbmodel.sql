@@ -64,10 +64,14 @@ CREATE TABLE IF NOT EXISTS `player_state` (
   `player_id` int(10) unsigned NOT NULL,
   -- Number of soil for this player
   `soil_count` smallint(5) NOT NULL,
+  -- Number of seeds for this player
+  `seed_count` smallint(5) NOT NULL,
   -- Number of sprouts gained in current activation
   `gained_sprout` smallint(5) NOT NULL,
   -- Number of growth gained in current activation
   `gained_growth` smallint(5) NOT NULL,
+  -- Number of sprouts to give to one player gained in current activation
+  `gained_sprout_choose_one` smallint(5) NOT NULL,
   -- Number cards the player can compost from hand in current activation
   `gained_compost_from_hand` smallint(5) NOT NULL,
   -- Comma separated list of card_id for cards that can be used for gained_sprout and gained_growth
@@ -94,6 +98,14 @@ CREATE TABLE IF NOT EXISTS `player_state` (
   `first_planted_card_id` int(10) unsigned NULL,
   -- Second planted card this current turn
   `second_planted_card_id` int(10) unsigned NULL,
+  -- Third planted card this current turn
+  `third_planted_card_id` int(10) unsigned NULL,
+  -- Number of sprout on player board at the end of the End Turn phase
+  `last_seen_exchange_sprout_count` smallint(5) NULL,
+  -- Comma separated list of card_i of end turn event cards in hand for the End Turn phase
+  `last_seen_end_turn_event_card_ids` varchar(100) NULL,
+  -- Checked if player does not want to be activated for the end of turn phase
+  `skip_end_of_turn` boolean NOT NULL,
   -- Stats
   -- Stats: Nb cards drawn in total
   `stat_nb_cards_drawn` int(10) unsigned NULL,
@@ -113,7 +125,28 @@ CREATE TABLE IF NOT EXISTS `player_state` (
   `stat_nb_growth_placed` int(10) unsigned NULL,
   -- Stats: Nb growth discarded (paid) in total
   `stat_nb_growth_paid` int(10) unsigned NULL,
+  -- Stats: Nb seed gained in total
+  `stat_nb_seed_gained` int(10) unsigned NULL,
+  -- Stats: Nb leafs converted in total
+  `stat_nb_leafs_converted` int(10) unsigned NULL,
+  -- Stats: Nb germinate actions
+  `stat_nb_germinate` int(10) unsigned NULL,
   PRIMARY KEY (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Exchange for each players
+CREATE TABLE IF NOT EXISTS `player_exchange` (
+  -- unique id with no meaning 
+  `player_exchange_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  -- The player the exchange is from
+  `from_player_id` int(10) unsigned NOT NULL,
+  -- The player the exchange is to
+  `to_player_id` int(10) unsigned NOT NULL,
+  -- Number of sprout given
+  `sprout_give` smallint(5) NOT NULL,
+  -- Number of sprout taken
+  `sprout_take` smallint(5) NOT NULL,
+  PRIMARY KEY (`player_exchange_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- State for the whole game
@@ -146,6 +179,8 @@ CREATE TABLE IF NOT EXISTS `game_state` (
   `gaia_deck_shuffle` smallint(5) NOT NULL,
   -- Last chosen gaia fauna objective was a left objective
   `last_gaia_fauna_left` boolean NOT NULL,
+  -- Version of the game
+  `game_version` smallint(5) NOT NULL,
   PRIMARY KEY (`game_state_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -187,6 +222,8 @@ CREATE TABLE IF NOT EXISTS `player_score` (
   `score` smallint(5) NOT NULL,
   -- Extra information about the score, like a card id list
   `extra_score` varchar(256) NULL,
+  -- Progress for ecosystem cards
+  `extra_progress` smallint(5) unsigned NULL,
   PRIMARY KEY (`score_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

@@ -20,8 +20,8 @@ define([
             ACTIVATION_DIRECTION_ISLAND_CLIMATE_TABLEAU: 0,
             ACTIVATION_DIRECTION_TABLEAU_ISLAND_CLIMATE: 1,
 
-            onButtonsStateActivationChooseBoardOrTableau(args) {
-                debug('onButtonsStateActivationChooseBoardOrTableau');
+            onStateActivationChooseBoardOrTableau(args) {
+                debug('onStateActivationChooseBoardOrTableau');
                 debug(args);
                 this.addTopButtonPrimary(
                     'button-activate-tableau',
@@ -51,15 +51,15 @@ define([
                 ).style.setProperty('--ea-zoom', 0.3);
             },
 
-            onButtonsStateActivationChooseActivateOrSkip(args) {
-                debug('onButtonsStateActivationChooseActivateOrSkip');
+            onStateActivationChooseActivateOrSkip(args) {
+                debug('onStateActivationChooseActivateOrSkip');
                 debug(args);
                 let buttonTitle = _('Activate ${mainActionId}');
-                if (args.activationString.length > 0) {
+                if (args.args.activationString.length > 0) {
                     buttonTitle = _('Activate');
                     buttonTitle += ' ';
-                    buttonTitle += '<div class="ea-main-action-id-color ea-main-action-id-color-' + args.mainActionId + '">';
-                    buttonTitle += args.activationString;
+                    buttonTitle += '<div class="ea-main-action-id-color ea-main-action-id-color-' + args.args.mainActionId + '">';
+                    buttonTitle += args.args.activationString;
                     buttonTitle += '</div>';
                 }
                 this.addTopButtonPrimary(
@@ -67,7 +67,7 @@ define([
                     this.format_string_recursive(
                         buttonTitle,
                         {
-                            mainActionId: args.mainActionId,
+                            mainActionId: args.args.mainActionId,
                             drawFromDeckIcon: '',
                             growthIcon: '',
                             soilIcon: '',
@@ -75,6 +75,9 @@ define([
                             compostFromHandIcon: '',
                             compostFromDeckIcon: '',
                             compostDestroyIcon: '',
+                            seedIcon: '',
+                            otherPlayersIcon: '',
+                            onePlayerIcon: '',
                         }
                     ),
                     () => this.serverAction('activationActivateCard')
@@ -85,7 +88,7 @@ define([
                     () => this.serverAction('activationSkipCard')
                 );
                 this.gainMgr.setupGain({
-                    abilityCardIds: [args.activatedAfterCopyCardId],
+                    abilityCardIds: [args.args.activatedAfterCopyCardId],
                     onAbilityCard: () => {
                         this.gainMgr.pause();
                         this.serverAction('activationActivateCard')
@@ -94,42 +97,42 @@ define([
                 });
             },
 
-            onButtonsStateActivationSelectGain(args) {
-                debug('onButtonsStateActivationSelectGain');
+            onStateActivationSelectGain(args) {
+                debug('onStateActivationSelectGain');
                 debug(args);
-                this.onAbilityGain('activationGain', args);
+                this.onAbilityGain('activationGain', args.args);
 
                 this.gainMgr.registerOnUpdateTableau(() => {
-                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                     gameui.addSelected(cardElem);
-                    if (args.activatedBeforeCopyCardId != args.activatedAfterCopyCardId) {
-                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedBeforeCopyCardId);
+                    if (args.args.activatedBeforeCopyCardId != args.args.activatedAfterCopyCardId) {
+                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedBeforeCopyCardId);
                         gameui.addSelected(copiedCardElem, { secondary: true });
                     }
                 });
             },
 
-            onButtonsStateActivationSelectPayment(args) {
-                debug('onButtonsStateActivationSelectPayment');
+            onStateActivationSelectPayment(args) {
+                debug('onStateActivationSelectPayment');
                 debug(args);
-                this.onAbilityPayment('activationPay', args);
+                this.onAbilityPayment('activationPay', args.args);
 
                 this.paymentMgr.registerOnUpdateTableau(() => {
-                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                     gameui.addSelected(cardElem);
-                    if (args.activatedBeforeCopyCardId != args.activatedAfterCopyCardId) {
-                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedBeforeCopyCardId);
+                    if (args.args.activatedBeforeCopyCardId != args.args.activatedAfterCopyCardId) {
+                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedBeforeCopyCardId);
                         gameui.addSelected(copiedCardElem, { secondary: true });
                     }
                 });
             },
 
-            onButtonsStateActivationChooseCardToCopy(args) {
+            onStateActivationChooseCardToCopy(args) {
                 debug('onStateActivationChooseCardToCopy');
                 debug(args);
 
                 this.gainMgr.setupGain({
-                    abilityCardIds: args.cardIds,
+                    abilityCardIds: args.args.cardIds,
                     onAbilityCard: (cardId) => {
                         this.gainMgr.pause();
                         this.serverAction('activationSelectCardToCopy', { cardId: cardId })
@@ -138,10 +141,10 @@ define([
                 });
 
                 this.gainMgr.registerOnUpdateTableau(() => {
-                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                     gameui.addSelected(cardElem);
-                    if (args.activatedBeforeCopyCardId != args.activatedAfterCopyCardId) {
-                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedBeforeCopyCardId);
+                    if (args.args.activatedBeforeCopyCardId != args.args.activatedAfterCopyCardId) {
+                        const copiedCardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedBeforeCopyCardId);
                         gameui.addSelected(copiedCardElem, { secondary: true });
                     }
                 });

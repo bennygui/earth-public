@@ -60,7 +60,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);
         $creator->add(new \EA\Actions\Ability\GainSoil($playerId, INACTIVE_PLAYER_GAIN_SOIL, null, MAIN_ACTION_ID_WATER));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->save();
     }
@@ -92,7 +92,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);
         $creator->add(new \EA\Actions\Ability\PlaceSprout($playerId, $placedSproutList));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->save();
     }

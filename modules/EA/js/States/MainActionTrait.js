@@ -23,8 +23,8 @@ define([
             },
 
             // Main
-            onButtonsStateMainActionChoose(args) {
-                debug('onButtonsStateMainActionChoose');
+            onStateMainActionChoose(args) {
+                debug('onStateMainActionChoose');
                 debug(args);
                 const actions = [
                     {
@@ -65,7 +65,7 @@ define([
                 ];
                 for (const action of actions) {
                     let serverAction = null;
-                    if (args.mainActionIds.indexOf(action.id) < 0) {
+                    if (args.args.mainActionIds.indexOf(action.id) < 0) {
                         serverAction = () => {
                             this.showMessage(
                                 this.format_string_recursive(
@@ -102,8 +102,8 @@ define([
             },
 
             // Compost
-            onButtonsStateActionCompostChoose(args) {
-                debug('onButtonsStateActionCompostChoose');
+            onStateActionCompostChoose(args) {
+                debug('onStateActionCompostChoose');
                 debug(args);
                 const actions = [
                     {
@@ -132,8 +132,8 @@ define([
             },
 
             // Water
-            onButtonsStateActionWaterChoose(args) {
-                debug('onButtonsStateActionWaterChoose');
+            onStateActionWaterChoose(args) {
+                debug('onStateActionWaterChoose');
                 debug(args);
                 const actions = [
                     { id: 'waterActionChooseGainSoil', name: this.format_string_recursive(_('Gain 2 ${soilIcon}'), { soilIcon: 'soil' }) },
@@ -158,15 +158,15 @@ define([
                     );
                 }
             },
-            onButtonsStateActionWaterPlaceSprout(args) {
-                debug('onButtonsStateActionWaterPlaceSprout');
+            onStateActionWaterPlaceSprout(args) {
+                debug('onStateActionWaterPlaceSprout');
                 debug(args);
-                this.onAbilityGain('waterActionPlaceSprout', args);
+                this.onAbilityGain('waterActionPlaceSprout', args.args);
             },
 
             // Grow
-            onButtonsStateActionGrowChoose(args) {
-                debug('onButtonsStateActionGrowChoose');
+            onStateActionGrowChoose(args) {
+                debug('onStateActionGrowChoose');
                 debug(args);
                 const actions = [
                     {
@@ -201,21 +201,24 @@ define([
                     );
                 }
             },
-            onButtonsStateActionGrowPlaceGrowth(args) {
-                debug('onButtonsStateActionGrowPlaceGrowth');
+            onStateActionGrowPlaceGrowth(args) {
+                debug('onStateActionGrowPlaceGrowth');
                 debug(args);
-                this.onAbilityGain('growActionPlaceGrowth', args);
+                this.onAbilityGain('growActionPlaceGrowth', args.args);
             },
 
             // Plant
-            onButtonsStateActionPlantActiveFirstCard(args) {
-                this.onPlantCard(args);
+            onStateActionPlantActiveFirstCard(args) {
+                this.onPlantCard(args.args);
             },
-            onButtonsStateActionPlantActiveSecondCard(args) {
-                this.onPlantCard(args, true);
+            onStateActionPlantActiveSecondCard(args) {
+                this.onPlantCard(args.args, true);
             },
-            onButtonsStateActionPlantInactiveCard(args) {
-                this.onPlantCard(args);
+            onStateActionPlantInactiveCard(args) {
+                this.onPlantCard(args.args);
+            },
+            onStateActionPlantAdditionalCard(args) {
+                this.onPlantCard(args.args);
             },
             onPlantCard(args, plantingSecondCard = false) {
                 debug('onPlantCard');
@@ -312,57 +315,51 @@ define([
                 this.clearSelectedBeforeRemoveAll();
             },
 
-            onButtonsStateActionPlantActiveKeepCard(args) {
-                debug('onButtonsStateActionPlantActiveKeepCard');
+            onStateActionPlantActiveKeepCard(args) {
+                debug('onStateActionPlantActiveKeepCard');
                 debug(args);
-                let chosenCardId = null;
-                const ID_CHOOSE_CARD = 'button-choose-card';
-                this.addTopButtonPrimaryWithValid(
-                    ID_CHOOSE_CARD,
-                    _('Keep selected card'),
-                    _('You must choose one card to keep'),
-                    () => {
-                        this.serverAction('planActionKeepOneDrawnCard', { cardId: chosenCardId });
-                    }
+                this.addTopButtonSelection(
+                    args.args.nbCards >= 2
+                        ? _('Keep selected cards')
+                        : _('Keep selected card'),
+                    this.format_string_recursive(
+                        _('You must choose ${nbCards} card(s) to keep'),
+                        {
+                            nbCards: args.args.nbCards,
+                        }
+                    ),
+                    {
+                        ids: args.args.handCardIds,
+                        onElement: (id) => this.cardMgr.getCardSelectionElementById(id),
+                        onClick: (ids) => {
+                            if (!(ids instanceof Array)) {
+                                if (ids === null) {
+                                    ids = [];
+                                } else {
+                                    ids = [ids];
+                                }
+                            }
+                            this.serverAction('planActionKeepOneDrawnCard', { cardIds: ids.join(',') })
+                        },
+                    },
+                    parseInt(args.args.nbCards)
                 );
-                this.setTopButtonValid(ID_CHOOSE_CARD, false);
-                for (const cardId of args.handCardIds) {
-                    const cardElem = this.cardMgr.getCardSelectionElementById(cardId);
-                    const onClick = () => {
-                        const wasSelected = (chosenCardId == cardId);
-                        if (chosenCardId !== null) {
-                            const otherCardElem = this.cardMgr.getCardSelectionElementById(chosenCardId);
-                            this.removeSelected(otherCardElem);
-                            chosenCardId = null;
-                        }
-                        if (!wasSelected) {
-                            this.addSelected(cardElem);
-                            chosenCardId = cardId;
-                        }
-                        this.setTopButtonValid(ID_CHOOSE_CARD, chosenCardId !== null);
-                    };
-                    this.addClickable(cardElem, onClick);
-                    if (this.elementWasSelectedBeforeRemoveAll(cardElem)) {
-                        onClick();
-                    }
-                }
-                this.clearSelectedBeforeRemoveAll();
             },
 
-            onButtonsStateActionPlantSelectGain(args) {
-                debug('onButtonsStateActionPlantSelectGain');
+            onStateActionPlantSelectGain(args) {
+                debug('onStateActionPlantSelectGain');
                 debug(args);
 
-                this.onAbilityGain('plantActionGain', args);
+                this.onAbilityGain('plantActionGain', args.args);
 
                 this.gainMgr.registerOnUpdateTableau(() => {
-                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.activatedAfterCopyCardId);
+                    const cardElem = gameui.cardMgr.getCardSelectionElementById(args.args.activatedAfterCopyCardId);
                     gameui.addSelected(cardElem);
                 });
             },
 
-            onButtonsStateActionPlantSelectPayment(args) {
-                debug('onButtonsStateActionPlantSelectPayment');
+            onStateActionPlantSelectPayment(args) {
+                debug('onStateActionPlantSelectPayment');
                 debug(args);
                 const BUTTON_PAY_PLACE_ID = 'button-pay-place';
 
@@ -370,7 +367,7 @@ define([
                 const placeListArgs = {};
 
                 placeListLogs.push('${payedSoil} ${soilIcon}');
-                placeListArgs['payedSoil'] = args.totalCost;
+                placeListArgs['payedSoil'] = args.args.totalCost;
                 placeListArgs['soilIcon'] = _('soil');
 
                 const updateButton = () => {
@@ -378,7 +375,7 @@ define([
                     buttonElem.innerHTML = this.format_string_recursive(
                         _('Pay ${totalCost}: ${placeList}'),
                         {
-                            totalCost: args.totalCost,
+                            totalCost: args.args.totalCost,
                             placeList: {
                                 log: placeListLogs.join(', '),
                                 args: placeListArgs,
@@ -414,49 +411,49 @@ define([
                     placeListArgs['payedCompostFromHand'] = this.paymentMgr.compostFromHandCount();
                     placeListArgs['payedSoil'] = Math.max(
                         0,
-                        args.totalCost
+                        args.args.totalCost
                         - this.paymentMgr.sproutCount()
                         - this.paymentMgr.growthCount()
                         - this.paymentMgr.compostFromHandCount()
                     );
                     gameui.setTopButtonValid(
                         BUTTON_PAY_PLACE_ID,
-                        args.soilCount
+                        args.args.soilCount
                         + this.paymentMgr.sproutCount()
                         + this.paymentMgr.growthCount()
-                        + this.paymentMgr.compostFromHandCount() >= args.totalCost
+                        + this.paymentMgr.compostFromHandCount() >= args.args.totalCost
                         &&
                         this.paymentMgr.sproutCount()
                         + this.paymentMgr.growthCount()
-                        + this.paymentMgr.compostFromHandCount() <= args.totalCost
+                        + this.paymentMgr.compostFromHandCount() <= args.args.totalCost
                     );
                     updateButton();
                 });
-                switch (args.paymentType) {
+                switch (args.args.paymentType) {
                     case gameui.ABILITY_PLANT_PAY_WITH_SPROUT:
                         placeListLogs.push('${payedSprout} ${sproutIcon}');
                         placeListArgs['payedSprout'] = 0;
                         placeListArgs['sproutIcon'] = _('sprout(s)');
-                        this.paymentMgr.addSprout(args.sproutCards, args.totalCost);
+                        this.paymentMgr.addSprout(args.args.sproutCards, args.args.totalCost);
                         break;
                     case gameui.ABILITY_PLANT_PAY_WITH_GROWTH:
                         placeListLogs.push('${payedGrowth} ${growthIcon}');
                         placeListArgs['payedGrowth'] = 0;
                         placeListArgs['growthIcon'] = _('growth(s)');
-                        this.paymentMgr.addGrowth(args.growthCards, args.totalCost);
+                        this.paymentMgr.addGrowth(args.args.growthCards, args.args.totalCost);
                         break;
                     case gameui.ABILITY_PLANT_PAY_WITH_COMPOST:
                         placeListLogs.push('${payedCompostFromHand} ${compostFromHandIcon}');
                         placeListArgs['payedCompostFromHand'] = 0;
                         placeListArgs['compostFromHandIcon'] = _('compost');
-                        this.paymentMgr.addCompostFromHand(args.handCardIds, args.totalCost);
+                        this.paymentMgr.addCompostFromHand(args.args.handCardIds, args.args.totalCost);
                         break;
                 }
             },
 
             // Solo Fauna
-            onButtonsStateActionSoloFaunaChoose(args) {
-                debug('onButtonsStateActionSoloFaunaChoose');
+            onStateActionSoloFaunaChoose(args) {
+                debug('onStateActionSoloFaunaChoose');
                 debug(args);
                 const actions = [
                     {
@@ -476,7 +473,7 @@ define([
                         title: _('Bottom-Right Fauna'),
                     },
                 ];
-                for (const pos of args.faunaPositions) {
+                for (const pos of args.args.faunaPositions) {
                     const elem = this.faunaBoardMgr.getFaunaBoardFaunaCardElement(pos[0], pos[1]);
                     this.addClickable(
                         elem.querySelector('.ea-card-selection'),

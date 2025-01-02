@@ -230,12 +230,26 @@ define([
 
                 const descElem = document.querySelector('#popin_' + this.DIALOG_ID + ' .ea-dialog-card-detail-description');
                 descElem.innerHTML = '';
+
+                const terrainScore = gameui.scoreMgr.getTerrainScore(this.currentCardId);
+                if (terrainScore !== null) {
+                    const scoreElem = document.createElement('p');
+                    scoreElem.innerHTML = '<b>' + _('Current Terrain Score:') + ' ' + terrainScore + '</b>';
+                    descElem.appendChild(scoreElem);
+                }
                 descElem.appendChild(this.buildCardDescription(cardDef));
                 if (cardDef.scienceName !== null) {
                     const scienceElem = document.createElement('p');
                     scienceElem.innerHTML = _('Scientific name:') + ' <i>' + cardDef.scienceName + '</i>';
                     descElem.appendChild(scienceElem);
                 }
+                const expansionElem = document.createElement('p');
+                if (gameui.isTrue(cardDef.isExpansionAbundance)) {
+                    expansionElem.innerHTML = _('From:') + ' <i>' + _('Abundance') + '</i>';
+                } else {
+                    expansionElem.innerHTML = _('From:') + ' <i>' + _('Base Game') + '</i>';
+                }
+                descElem.appendChild(expansionElem);
 
                 if (this.arrowListener.length == 0) {
                     this.arrowListener.push(dojo.connect(leftElem, 'click', () => {
@@ -262,6 +276,9 @@ define([
 
             buildCardDescription(cardDef) {
                 const abilities = [];
+                if (gameui.isTrue(cardDef.isEndTurn)) {
+                    abilities.push(_('Play at the end of a turn. All players can play this event.'));
+                }
                 for (const ab of cardDef.abilities) {
                     let line = null;
                     switch (ab.color) {
@@ -365,6 +382,12 @@ define([
                         return gameui.format_string_recursive(_('compost ${count} card(s) from the deck'), { count: count });
                     case gameui.ABILITY_COMPOST_DESTROY:
                         return gameui.format_string_recursive(_('discard ${count} card(s) from your compost'), { count: count });
+                    case gameui.ABILITY_SEED:
+                        return gameui.format_string_recursive(_('${count} seed(s)'), { count: count });
+                    case gameui.ABILITY_SPROUT_ALL_OTHERS:
+                        return gameui.format_string_recursive(_('all other players gain ${count} sprout(s)'), { count: count });
+                    case gameui.ABILITY_SPROUT_CHOOSE_ONE:
+                        return gameui.format_string_recursive(_('one player you choose gains ${count} sprout(s)'), { count: count });
                 }
                 return '';
             },

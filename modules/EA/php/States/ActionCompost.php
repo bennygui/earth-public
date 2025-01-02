@@ -40,10 +40,31 @@ trait GameStatesTrait
         $this->gamestate->setAllPlayersMultiactive();
         $inactivePlayerIdArray = array_diff($this->getPlayerIdArray(), [$activePlayerId]);
         if ($activePlayerId != \EA\GAIA_PLAYER_ID) {
-            if ($this->mustGotoConfirmEndPhase($activePlayerId, null)) {
-                $this->gamestate->setPrivateState($activePlayerId, STATE_CONFIRM_END_PHASE_ID);
+            if (gameVersionHasFalltroughActivation()) {
+                if (\EA\Actions\Activation\MarkActivatingNextCard::playerHasActivatableCards($activePlayerId)) {
+                    if (\EA\Actions\Activation\MarkActivatingNextCard::playerMustChooseDirection($activePlayerId)) {
+                        $this->gamestate->setPrivateState($activePlayerId, STATE_ACTIVATION_CHOOSE_BOARD_OR_TABLEAU_ID);
+                    } else {
+                        $creator = new \BX\Action\ActionCommandCreatorCommit($activePlayerId);
+                        $creator->add(new \EA\Actions\Activation\ChooseBoardOrTableau($activePlayerId, \EA\ACTIVATION_DIRECTION_ISLAND_CLIMATE_TABLEAU, false));
+                        $creator->add(new \EA\Actions\Activation\MarkActivatingNextCard($activePlayerId));
+                        $this->addCommonActions($creator);
+                        $creator->commit();
+                        $this->gamestate->setPrivateState($activePlayerId, STATE_ACTIVATION_CHOOSE_ACTIVATE_OR_SKIP_ID);
+                    }
+                } else {
+                    if ($this->mustGotoConfirmEndPhase($activePlayerId, null)) {
+                        $this->gamestate->setPrivateState($activePlayerId, STATE_CONFIRM_END_PHASE_ID);
+                    } else {
+                        $this->gamestate->setPlayerNonMultiactive($activePlayerId, null);
+                    }
+                }
             } else {
-                $this->gamestate->setPlayerNonMultiactive($activePlayerId, null);
+                if ($this->mustGotoConfirmEndPhase($activePlayerId, null)) {
+                    $this->gamestate->setPrivateState($activePlayerId, STATE_CONFIRM_END_PHASE_ID);
+                } else {
+                    $this->gamestate->setPlayerNonMultiactive($activePlayerId, null);
+                }
             }
         }
         $this->gamestate->initializePrivateStateForPlayers($inactivePlayerIdArray);
@@ -61,7 +82,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);
         $creator->add(new \EA\Actions\Ability\GainSoil($playerId, INACTIVE_PLAYER_GAIN_SOIL, null, MAIN_ACTION_ID_COMPOST));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->save();
     }
@@ -78,7 +99,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
         $creator->add(new \EA\Actions\Ability\CompostFromDeck($playerId, INACTIVE_PLAYER_GAIN_COMPOST));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->commit();
     }

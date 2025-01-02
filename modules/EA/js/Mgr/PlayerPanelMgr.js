@@ -38,12 +38,21 @@ define([
                             rowElem = this.createPlayerPanelRow(playerBoardElem);
                             continue;
                         }
+                        if (info[4] == 'abundance' && gameui.isFalse(gamedatas.gameHasExpansionAbundance)) {
+                            continue;
+                        }
                         const pill = this.createPillElem(info[1]);
                         if (info[3]) {
                             pill.classList.add('ea-pill-tableau-related');
                             if (!gameui.isReadOnly()) {
                                 pill.classList.add('bx-hidden');
                             }
+                        }
+                        if (info[4] == 'abundance') {
+                            pill.classList.add('ea-pill-abundance-related');
+                        }
+                        if (info[5] !== undefined) {
+                            pill.style.setProperty('--ea-zoom', info[5]);
                         }
                         gameui.counters[playerId][info[0]].addTarget(pill.querySelector('.ea-pill-counter'));
                         rowElem.appendChild(pill);
@@ -94,6 +103,38 @@ define([
                     if (gameui.isGameSolo()) {
                         activePlayerContainerElem.classList.add('bx-transparent');
                     }
+
+                    const islandClimateOverviewElem = document.createElement('div');
+                    islandClimateOverviewElem.classList.add('ea-player-panel-island-climate-overview');
+                    rowElem.appendChild(islandClimateOverviewElem);
+                    gameui.addBasicTooltipToElement(islandClimateOverviewElem, _('Displays color of Island and Climate cards'));
+                }
+
+                // Display left and right icon on left and right players
+                if (
+                    gameui.player_id in gameui.gamedatas.players
+                    && gameui.isTrue(gamedatas.gameHasExpansionAbundance)
+                ) {
+                    let playerIds = gameui.getAllPlayerIds();
+                    if (playerIds.length > 2) {
+                        const addIcon = (otherPlayerId, isLeft) => {
+                            const lastPill = gameui.getPlayerPanelBoardElem(otherPlayerId).querySelector('.ea-pill-abundance-related:last-child');
+                            const newPill = this.createPillElem('ea-icon-player-left');
+                            newPill.querySelector('.ea-pill-counter').remove();
+                            newPill.style.setProperty('--ea-zoom', 0.5);
+                            if (!isLeft) {
+                                newPill.style.transform = 'scaleX(-1)';
+                            }
+                            lastPill.parentElement.appendChild(newPill);
+                            gameui.addBasicTooltipToElement(
+                                newPill,
+                                _('Indicates that this player is on your left or right for some card abilities.')
+                            );
+                        };
+                        playerIds = gameui.rotateValueToFront(playerIds, gameui.player_id);
+                        addIcon(playerIds[1], true);
+                        addIcon(playerIds[playerIds.length - 1], false);
+                    }
                 }
 
                 this.setIsGaiaTurn(gamedatas.isGaiaTurn);
@@ -112,11 +153,15 @@ define([
                     ['sprout', 'ea-icon-sprout', _('Number of placed sprouts / Number of sprouts spots in tableau'), true],
                     ['growth', 'ea-icon-growth', _('Number of placed growth / Number of growth spots in tableau'), true],
                     null,
+                    ['seed', 'ea-icon-seed', _('Number seeds'), false, 'abundance'],
+                    ['exchangeSprout', 'ea-icon-sprout-additional', _('Number of Abundance Sprouts on Player Board'), false, 'abundance'],
+                    ['abilityNeighbour', 'ea-icon-player-both', _('Number of cards with Neighbour abilities (not black) in tableau'), false, 'abundance', 0.35],
+                    null,
                     ['cardTree', 'ea-icon-card-type-tree', _('Number of Tree cards in tableau'), true],
                     ['cardHerb', 'ea-icon-card-type-herb', _('Number of Herb cards in tableau'), true],
                     ['cardMushroom', 'ea-icon-card-type-mushroom', _('Number of Mushroom cards in tableau'), true],
                     ['cardBush', 'ea-icon-card-type-bush', _('Number of Bush cards in tableau'), true],
-                    ['cardJoker', 'ea-icon-card-type-joker', _('Number of cards with all 4 card types in tableau'), true],
+                    ['cardJoker', 'ea-icon-card-type-joker', _('Number of cards with more than one type in tableau'), true],
                     ['cardTerrain', 'ea-icon-card-type-terrain', _('Number of Terrain cards in tableau'), true],
                     null,
                     ['habitatSunny', 'ea-icon-habitat-sunny', _('Number of Sunny habitat on tableau, island and climate cards'), true],
@@ -200,6 +245,15 @@ define([
                     window.location.reload();
                 });
                 gameui.addBasicTooltipToElement(rowElem, _('Display cards in a compact way. This cuts parts of the cards that are not required for gameplay. Requires a page reload to be applied.'));
+
+                // Fast notification
+                rowElem = this.createPlayerPanelRow(optionPanel);
+                rowElem.appendChild(gameui.createCheckboxSwitch('ea-fast-notif-checkbox', _('Reduce movement conflicts:')));
+                const fastNotifCheckbox = document.getElementById('ea-fast-notif-checkbox');
+                fastNotifCheckbox.addEventListener('change', () => {
+                    gameui.setLocalPreference(gameui.EA_PREF_FAST_NOTIF_ID, fastNotifCheckbox.checked);
+                });
+                gameui.addBasicTooltipToElement(rowElem, _('Cards and resources movements for other players are faster to reduce conflict when your are playing.'));
             },
 
             setupGaiaPanel() {

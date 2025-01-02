@@ -31,6 +31,7 @@ require_once("modules/EA/php/Card.php");
 require_once("modules/EA/php/CardDefMgr.php");
 require_once("modules/EA/php/LeafToken.php");
 require_once("modules/EA/php/PlayerState.php");
+require_once("modules/EA/php/PlayerExchange.php");
 require_once("modules/EA/php/PlayerScore.php");
 require_once("modules/EA/php/GameState.php");
 require_once("modules/EA/php/CardTag.php");
@@ -52,6 +53,7 @@ require_once("modules/EA/php/States/Confirm.php");
 require_once("modules/EA/php/States/GameEnd.php");
 require_once("modules/EA/php/States/CardTag.php");
 require_once("modules/EA/php/States/SeenLeafToken.php");
+require_once("modules/EA/php/States/EndTurn.php");
 
 require_once("modules/EA/php/Debug.php");
 
@@ -60,19 +62,11 @@ require_once("modules/EA/php/Debug.php");
 \BX\Action\ActionRowMgrRegister::registerMgr('card', \EA\CardMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('leaf_token', \EA\LeafTokenMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('player_state', \EA\PlayerStateMgr::class);
+\BX\Action\ActionRowMgrRegister::registerMgr('player_exchange', \EA\PlayerExchangeMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('player_score', \EA\PlayerScoreMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('game_state', \EA\GameStateMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('card_tag', \EA\CardTagMgr::class);
 \BX\Action\ActionRowMgrRegister::registerMgr('player_seen_leaf_token', \EA\PlayerSeenLeafTokenMgr::class);
-
-\BX\Lock\Locker::registerTableColumn('action_command', 'action_command_id');
-\BX\Lock\Locker::registerTableColumn('card', 'card_id');
-\BX\Lock\Locker::registerTableColumn('leaf_token', 'token_id');
-\BX\Lock\Locker::registerTableColumn('player_state', 'player_id');
-\BX\Lock\Locker::registerTableColumn('game_state', 'game_state_id');
-\BX\Lock\Locker::registerTableColumn('card_tag', 'card_tag_id');
-\BX\Lock\Locker::registerTableColumn('player_score', 'score_id');
-\BX\Lock\Locker::registerTableColumn('player_seen_leaf_token', 'player_seen_leaf_token_id');
 
 class earth extends Table
 {
@@ -95,18 +89,18 @@ class earth extends Table
     use EA\State\GameEnd\GameStatesTrait;
     use EA\State\CardTag\GameStatesTrait;
     use EA\State\SeenLeafToken\GameStatesTrait;
+    use EA\State\EndTurn\GameStatesTrait;
 
     use EA\Debug\GameStatesTrait;
 
     function __construct()
     {
-        // Your global variables labels:
-        //  Here, you can assign labels to global variables you are using for this game.
-        //  You can use any number of global variables with IDs between 10 and 99.
-        //  If your game has options (variants), you also have to associate here a label to
-        //  the corresponding ID in gameoptions.inc.php.
-        // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
+        // EXPERIMENTAL to avoid deadlocks. This locks the global table early in the game constructor.
+        $this->bSelectGlobalsForUpdate = true;
         parent::__construct();
+        // EXPERIMENTAL to avoid deadlocks. This locks the global table early in the game constructor.
+        $this->bSelectGlobalsForUpdate = true;
+
         \BX\Action\BaseActionCommandNotifier::setGame($this);
         $this->enableSendFaunaProgress();
 
@@ -114,6 +108,8 @@ class earth extends Table
             GAME_OPTION_GAME_MODE => GAME_OPTION_GAME_MODE_ID,
             GAME_OPTION_SOLO_DIFFICULTY => GAME_OPTION_SOLO_DIFFICULTY_ID,
             GAME_OPTION_HIDE_SETUP => GAME_OPTION_HIDE_SETUP_ID,
+            GAME_OPTION_EXPANSION => GAME_OPTION_EXPANSION_ID,
+            GAME_OPTION_SHOW_SCORE => GAME_OPTION_SHOW_SCORE_ID,
         ]);
     }
 
@@ -155,6 +151,7 @@ class earth extends Table
         \BX\Action\ActionRowMgrRegister::getMgr('card')->setup($playerIdArray);
         \BX\Action\ActionRowMgrRegister::getMgr('leaf_token')->setup($playerIdArray);
         \BX\Action\ActionRowMgrRegister::getMgr('player_state')->setup($playerIdArray);
+        \BX\Action\ActionRowMgrRegister::getMgr('player_exchange')->setup($playerIdArray);
         \BX\Action\ActionRowMgrRegister::getMgr('game_state')->setup($playerIdArray);
 
         // Activate first player (which is in general a good idea :) )
@@ -185,6 +182,7 @@ class earth extends Table
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
         $leafTokenMgr = \BX\Action\ActionRowMgrRegister::getMgr('leaf_token');
         $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
+        $playerExchangeMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_exchange');
         $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
         $playerScoreMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_score');
         $cardTagMgr = \BX\Action\ActionRowMgrRegister::getMgr('card_tag');
@@ -193,9 +191,8 @@ class earth extends Table
         $stateId = $this->gamestate->state_id();
         $gameHasEnded = ($stateId == STATE_GAME_ENDING_SCORE_ID
             || $stateId == STATE_GAME_END_ID
-            || $playerScoreMgr->hasScore()
         );
-        $result['players'] = $playerMgr->getAllForUI($gameHasEnded);
+        $result['players'] = $playerMgr->getAllForUI($gameHasEnded || isGameOptionScoreVisible());
         $result['cards'] = $cardMgr->getAllVisibleForPlayer($playerId);
         $result['cardCounts'] = $cardMgr->getCardCountsUIEverything();
         $result['carddefs'] = \EA\CardDefMgr::getAll();
@@ -203,6 +200,7 @@ class earth extends Table
         $result['eventPerPlayerId'] = $cardMgr->getAllPlayerBoardEventCards($playerIdArray);
         $result['leafs'] = \EA\leafTokenToPlayerUI($leafTokenMgr->getAll(), $playerId);
         $result['soilCountByPlayerId'] = $playerStateMgr->getAllPlayersSoilCount();
+        $result['seedCountByPlayerId'] = $playerStateMgr->getAllPlayersSeedCount();
         $result['playerActiveOrder'] = $gameStateMgr->playerIdsWithActiveOrder();
         $result['isLastRound'] = (!$gameHasEnded &&
             ($cardMgr->isTableauFilledForOneOfAllPlayers() || $gameStateMgr->isSoloLastTurn())
@@ -221,6 +219,9 @@ class earth extends Table
         if (array_search($playerId, $playerIdArray) !== false) {
             $result['faunaProgress'][$playerId] = $this->getFaunaProgressForPlayers([$playerId], true)[$playerId];
         }
+        $result['gameHasExpansionAbundance'] = gameHasExpansionAbundance();
+        $result['playerExchanges'] = $playerExchangeMgr->getAll();
+        $result['gameHasEnded'] = $gameHasEnded;
 
         return $result;
     }
@@ -343,6 +344,11 @@ class earth extends Table
             case STATE_ACTION_GROW:
             case STATE_ACTIVATION:
             case STATE_GAME_ENDING_LAST_CHANCE:
+                // Abundance
+            case STATE_ACTION_PLANT_ADDITIONAL:
+            case STATE_ACTION_PLANT_SPECIAL_GAIN:
+            case STATE_END_TURN:
+            case STATE_END_TURN_EVENT:
                 $this->gamestate->setPlayerNonMultiactive($playerId, null);
                 break;
             case STATE_EVENT_SELECT_GAIN:

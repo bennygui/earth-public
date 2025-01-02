@@ -26,38 +26,17 @@ trait GameStatesTrait
         $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
         $playerStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_state');
         $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
-        // Commit all players
-        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
-        foreach ($playerIdArray as $playerId) {
-            \BX\Action\ActionCommandMgr::commit($playerId);
-        }
 
+        $this->revealTableauAndFauna();
+
+        $playerIdArray = $gameStateMgr->playerIdsInActiveOrder();
+
+        $this->updateAllPlayersCardCounts();
 
         if ($gameStateMgr->activeGamePhase() == \EA\GAME_PHASE_PLAYER_SETUP) {
             foreach ($playerIdArray as $playerId) {
                 \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\PlayerSetup\RevealSetup($playerId));
             }
-        }
-
-        // Give extra time
-        foreach ($playerIdArray as $playerId) {
-            $this->giveExtraTime($playerId);
-        }
-
-        $playerStateMgr->resetPlayersActivationNow();
-
-        // Reveal all invisible cards
-        foreach ($playerIdArray as $playerId) {
-            \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\MainAction\RevealTableau($playerId));
-        }
-        foreach ($playerIdArray as $playerId) {
-            \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\Fauna\RevealPrivateFauna($playerId));
-        }
-        // Check Fauna once the reveal is completed
-        foreach ($playerIdArray as $playerId) {
-            $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
-            $this->addCommonActions($creator);
-            $creator->commit();
         }
 
         // Detect last round
@@ -146,6 +125,13 @@ trait GameStatesTrait
                     \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\Fauna\MoveLeafTokenToFinalPosition($playerId));
                 }
                 $playerStateMgr->resetPlantedCardsNow();
+
+                foreach ($playerIdArray as $playerId) {
+                    \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\EndTurn\ConfirmDoNotSkipEndTurn($playerId));
+                }
+
+                $this->updateEndTurnScores();
+
                 if ($isEndGame) {
                     $this->gamestate->nextState('gameEndingLastChance');
                     break;
@@ -224,6 +210,12 @@ trait GameStatesTrait
                     throw new \BgaSystemException("BUG! Next main action is null and about to activate actions");
                 }
                 $this->gamestate->nextState('activation');
+                break;
+            case \EA\GAME_PHASE_END_TURN:
+                if (!gameHasExpansionAbundance()) {
+                    throw new \BgaSystemException("BUG! Game does not have Abundance but about to go to End Turn phase");
+                }
+                $this->gamestate->nextState('endTurn');
                 break;
             case \EA\GAME_PHASE_PLAYER_SETUP:
             default:
@@ -358,5 +350,32 @@ trait GameStatesTrait
                 throw new \BgaSystemException("BUG! Leaf Token is on main action {$leafToken->locationX} but main action is $mainActionId");
             }
         }
+    }
+
+    private function updateEndTurnScores()
+    {
+        if (!isGameOptionScoreVisible()) {
+            return;
+        }
+        \EA\Score\commitFinalScores();
+        $playerScoreMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_score');
+        $scorepad = $playerScoreMgr->getScorepadUI();
+        foreach ($scorepad as $pad) {
+            if ($pad->playerId == \EA\GAIA_PLAYER_ID) {
+                continue;
+            }
+            \BX\Action\ActionCommandMgr::saveOneAndCommit(new \BX\Player\PlayerSetEndGameScoreActionCommand(
+                $pad->playerId,
+                $pad->scoreTotal
+            ));
+        }
+        $this->notifyAllPlayers(
+            NTF_SCOREPAD,
+            '',
+            [
+                'scorepad' => $scorepad,
+                'gameHasEnded' => false,
+            ]
+        );
     }
 }

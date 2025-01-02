@@ -181,11 +181,11 @@ trait CardDefMgrEcosystem
                 ->build(),
             (new CardDefBuilder())->ecosystemId(323, 1)->name(clienttranslate("Alps Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_DIRECTION_WITH_DIFFERENT_GROWTH_COUNT, 7, AB_DIRECTION_ROW])
-                    ->desc(clienttranslate('Score 7 points per row in which each of the 4 cards have a different number of growth (0-6)'))->build())
+                    ->desc(clienttranslate('Score 7 points per row in which each of the 4 cards have a different number of growth (0-8)'))->build())
                 ->build(),
             (new CardDefBuilder())->ecosystemId(323, 2)->name(clienttranslate("Himalayas Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_DIRECTION_WITH_DIFFERENT_GROWTH_COUNT, 7, AB_DIRECTION_COLUMN])
-                    ->desc(clienttranslate('Score 7 points per column in which each of the 4 cards have a different number of growth (0-6)'))->build())
+                    ->desc(clienttranslate('Score 7 points per column in which each of the 4 cards have a different number of growth (0-8)'))->build())
                 ->build(),
             (new CardDefBuilder())->ecosystemId(324, 1)->name(clienttranslate("Tai Poutini National Park Ecosystem"))
                 ->ability((new AbilityBuilder())->scores([AB_ECO_PER_SPROUT, 3, 5])

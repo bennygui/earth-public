@@ -22,6 +22,7 @@ const COLOR_TO_COLOR_NAME = [
     '71b17f' => 'green',
     'fbff00' => 'yellow',
     'a66eaf' => 'purple',
+    'f50ced' => 'pink',
 ];
 
 class Player extends \BX\Player\Player

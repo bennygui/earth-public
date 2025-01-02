@@ -242,7 +242,7 @@ define([
                     html += params['after'];
                 }
                 html += '</div>'
-                const dialog = new bx.ModalDialog('ea-information-dialog', {
+                const dialog = new bx.ModalDialog('bx-information-dialog', {
                     title: title,
                     contentsTpl: html,
                     closeWhenClickAnywhere: true,
@@ -266,6 +266,80 @@ define([
                 } else {
                     return Promise.resolve();
                 }
+            },
+
+            getPlayerPanelBoardElem(playerId) {
+                return document.getElementById('player_board_' + playerId);
+            },
+
+            getOverallPlayerPanelBoardElem(playerId) {
+                return document.getElementById('overall_player_board_' + playerId);
+            },
+
+            getPlayerPanelScoreElem(playerId) {
+                return document.getElementById('player_score_' + playerId);
+            },
+
+            appendPlayerPanelRow(playerId) {
+                const board = this.getPlayerPanelBoardElem(playerId);
+                return this.appendPlayerPanelRowToBoardElem(board);
+            },
+
+            appendPlayerPanelRowToBoardElem(boardElem) {
+                const row = document.createElement('div');
+                row.classList.add('bx-player-panel-row');
+                boardElem.appendChild(row);
+                return row;
+            },
+
+            createPillElem(topImageClass, topImageElemFct = null, bottomCounterElemFct = null) {
+                const pillElem = document.createElement('div');
+                pillElem.classList.add('bx-pill')
+
+                const imgElem = document.createElement('div');
+                if (topImageClass instanceof Array) {
+                    for (const cl of topImageClass) {
+                        imgElem.classList.add(cl)
+                    }
+                } else {
+                    imgElem.classList.add(topImageClass)
+                }
+
+                const countElem = document.createElement('div');
+                countElem.classList.add('bx-pill-counter')
+                countElem.innerText = '0';
+
+                pillElem.appendChild(imgElem);
+                pillElem.appendChild(countElem);
+                if (topImageElemFct !== null) {
+                    topImageElemFct(imgElem);
+                }
+                if (bottomCounterElemFct !== null) {
+                    bottomCounterElemFct(countElem);
+                }
+                return pillElem;
+            },
+
+            getElementCreationElement() {
+                let elem = document.getElementById('bx-element-creation');
+                if (elem === null) {
+                    const parent = document.getElementById('game_play_area');
+                    elem = document.createElement('div');
+                    elem.id = 'bx-element-creation'
+                    elem.classList.add('bx-hidden');
+                    parent.appendChild(elem);
+                }
+                return elem;
+            },
+
+            createIgnoredDelayCallback(callback, delay = 500) {
+                let ignoreCallback = true;
+                setTimeout(() => ignoreCallback = false, delay);
+                return () => {
+                    if (!ignoreCallback) {
+                        return callback();
+                    }
+                };
             },
         });
     });

@@ -42,20 +42,20 @@ class view_earth_earth extends game_view
         "PLAYER_ID" => $playerId,
         "PLAYER_NAME" => $playerInfo['player_name'],
         "PLAYER_COLOR" => $playerInfo['player_color'],
-        "SHOW_ICON_HELP" => $this->_('Show Icon Help'),
-        "HIDE_ICON_HELP" => $this->_('Hide Icon Help'),
-        "DISPLAY_EMPTY_DECK" => $this->_("The deck is empty: effects that draws won't do anything"),
+        "SHOW_ICON_HELP" => self::_('Show Icon Help'),
+        "HIDE_ICON_HELP" => self::_('Hide Icon Help'),
+        "DISPLAY_EMPTY_DECK" => self::_("The deck is empty: effects that draws won't do anything"),
       ]
     );
   }
 
   public function build_page($viewArgs)
   {
-    $this->tpl['DISPLAY_LAST_ROUND'] = $this->_('This is the last round!');
-    $this->tpl['DECK'] = $this->_('Deck:');
-    $this->tpl['DISCARD'] = $this->_('Discard:');
-    $this->tpl['PROGRESS'] = $this->_('Progress');
-    $this->tpl['DISPLAY_EMPTY_DECK'] = $this->_("The deck is empty: effects that draws won't do anything");
+    $this->tpl['DISPLAY_LAST_ROUND'] = self::_('This is the last round!');
+    $this->tpl['DECK'] = self::_('Deck:');
+    $this->tpl['DISCARD'] = self::_('Discard:');
+    $this->tpl['PROGRESS'] = self::_('Progress');
+    $this->tpl['DISPLAY_EMPTY_DECK'] = self::_("The deck is empty: effects that draws won't do anything");
 
     $currentPlayerId = $this->game->currentPlayerId();
     $playersInfos = $this->game->loadPlayersBasicInfos();

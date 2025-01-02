@@ -21,6 +21,9 @@ define([
                 const elemCreationElem = gameui.getElementCreationElement();
                 for (const tokenId in gamedatas.leafs) {
                     const leaf = gamedatas.leafs[tokenId];
+                    if (parseInt(leaf.locationId) == gameui.LEAF_LOCATION_ID_DICARD) {
+                        continue;
+                    }
                     const leafElem = this.createLeafElement(leaf, true);
                     elemCreationElem.appendChild(leafElem);
                 }

@@ -125,6 +125,7 @@
         </div>
         <div id='ea-area-card-hand'></div>
     </div>
+    <div id='ea-area-card-end-turn-container'></div>
     <div id='ea-area-common'>
         <div id='ea-area-fauna-board'>
             <div id='ea-fauna-board'>
@@ -177,6 +178,7 @@
                 <div class='ea-fauna-board-fauna-leaf-spot' id='ea-fauna-board-fauna-leaf-1-1-3'></div>
                 <div class='ea-fauna-board-fauna-leaf-spot' id='ea-fauna-board-fauna-leaf-1-1-4'></div>
                 
+                <div id='ea-fauna-board-fauna-abundance-tableau-bonus'></div>
                 <div id='ea-fauna-board-fauna-leaf-tableau-bonus'></div>
                 
                 <div id='ea-fauna-board-fauna-progress-button'>
@@ -233,6 +235,8 @@
                     <div id='ea-gaia-board-gaia-card-count' class='ea-counter'>0</div>
                     <div id='ea-gaia-board-gaia-card-help' class='ea-gaia-board-help ea-card-help'></div>
                 </div>
+                
+                <div id='ea-gaia-board-abundance-leaf'></div>
             </div>
         </div>
     </div>
@@ -296,6 +300,12 @@
                     <div class='ea-player-soil-box'></div>
                     <div class='ea-player-soil-conversion-box'></div>
 
+                    <div class='ea-player-seed-count ea-counter'>0</div>
+                    <div class='ea-player-seed-box'></div>
+
+                    <div class='ea-player-exchange-sprout-count ea-counter'>0</div>
+                    <div class='ea-player-exchange-sprout-box'></div>
+
                     <div class='ea-player-board-card ea-player-board-card-0'></div>
                     <div class='ea-player-board-card ea-player-board-card-1'></div>
                     <div class='ea-player-board-card ea-player-board-card-2'></div>
@@ -332,6 +342,16 @@
                         <div class='ea-player-board-bottom-score-terrain'></div>
                         <div class='ea-player-board-bottom-score-ecosystem'></div>
                         <div class='ea-player-board-bottom-score-fauna'></div>
+                    </div>
+                    <div class='ea-player-board-bottom-abundance'>
+                        <div class='ea-player-board-bottom-abundance-create-seed'></div>
+                        <div class='ea-player-board-bottom-abundance-use-seed'></div>
+
+                        <div class='ea-player-board-bottom-abundance-germinate'></div>
+                        <div class='ea-player-board-bottom-abundance-player-1'></div>
+                        <div class='ea-player-board-bottom-abundance-player-2'></div>
+                        <div class='ea-player-board-bottom-abundance-sprout-storage'></div>
+                        <div class='ea-player-board-bottom-abundance-end-turn-sprout'></div>
                     </div>
                 </details>
             </div>

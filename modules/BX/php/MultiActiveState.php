@@ -20,7 +20,7 @@ function argsMultiActive(int $playerId, callable $argsCallback)
 {
     \BX\Action\ActionCommandMgr::apply($playerId);
     $ret = \BX\UI\deepCopyToArray($argsCallback($playerId));
-    $ret['undoLevel'] = \BX\Action\ActionCommandMgr::count($playerId);
+    $ret['undoLevel'] = \BX\Action\ActionCommandMgr::undoLevel($playerId);
     \BX\Action\ActionCommandMgr::clear();
     return $ret;
 }
@@ -38,6 +38,13 @@ trait GameStatesTrait
         return $ret;
     }
 
+    public function argsDefaultMultiActivePrivate(int $playerId)
+    {
+        return argsMultiActive($playerId, function ($playerId) {
+            return [];
+        });
+    }
+
     public function argsCustomMultiActive(callable $argsCallback)
     {
         $ret = [];
@@ -46,6 +53,13 @@ trait GameStatesTrait
         }
         return $ret;
     }
+
+    public function stActivateAllPlayersInitialPrivate()
+    {
+        $this->gamestate->setAllPlayersMultiactive();
+        $this->gamestate->initializePrivateStateForAllActivePlayers();
+    }
+
 }
 
 class NextPrivateStateActionCommand extends \BX\Action\BaseActionCommand

@@ -18,6 +18,15 @@ require_once(__DIR__ . '/../Score.php');
 
 trait GameStatesTrait
 {
+    public function stPreGameEndingLastChance()
+    {
+        if (gameHasExpansionAbundance()) {
+            $this->gamestate->nextState('lastEndTurnEndGame');
+        } else {
+            $this->gamestate->nextState('basicEndGame');
+        }
+    }
+
     public function stGameEndingLastChance()
     {
         $this->gamestate->setAllPlayersMultiactive();
@@ -40,6 +49,12 @@ trait GameStatesTrait
 
     public function stGameEndingScore()
     {
+        // Commit all players
+        $playerIdArray = $this->getPlayerIdArray();
+        foreach ($playerIdArray as $playerId) {
+            \BX\Action\ActionCommandMgr::commit($playerId);
+        }
+
         $this->notifyAllPlayers(
             NTF_LAST_ROUND,
             '',
@@ -70,6 +85,8 @@ trait GameStatesTrait
         foreach ($playerIdArray as $playerId) {
             \BX\Action\ActionCommandMgr::saveOneAndCommit(new \EA\Actions\Fauna\MoveLeafTokenToFinalPosition($playerId));
         }
+    
+        $this->updateAllPlayersCardCounts();
 
         // Save scores
         \EA\Score\commitFinalScores();
@@ -84,6 +101,7 @@ trait GameStatesTrait
             '',
             [
                 'scorepad' => $scorepad,
+                'gameHasEnded' => true,
             ]
         );
 
@@ -265,6 +283,7 @@ trait GameStatesTrait
         $leafTokenMgr = \BX\Action\ActionRowMgrRegister::getMgr('leaf_token');
         $gameStateMgr = \BX\Action\ActionRowMgrRegister::getMgr('game_state');
         $playerScoreMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_score');
+        $playerExchangeMgr = \BX\Action\ActionRowMgrRegister::getMgr('player_exchange');
 
         foreach ($playerScoreMgr->getScorepadUI() as $pad) {
             if ($pad->playerId == \EA\GAIA_PLAYER_ID) {
@@ -321,13 +340,14 @@ trait GameStatesTrait
                     $playerId
                 );
                 $hasFaunaBonus = $leafTokenMgr->playerHasFaunaBoardTableauBonus(\EA\GAIA_PLAYER_ID);
+                $faunaBonusScore = \EA\Score\ScoreFaunaBonus::getFaunaBonusScore();
                 $this->setStat(
-                    $pad->scoreFauna - ($hasFaunaBonus ? 7 : 0),
+                    $pad->scoreFauna - ($hasFaunaBonus ? $faunaBonusScore : 0),
                     STATS_PLAYER_GAIA_VP_FAUNA_CARD,
                     $playerId
                 );
                 $this->setStat(
-                    ($hasFaunaBonus ? 7 : 0),
+                    ($hasFaunaBonus ? $faunaBonusScore : 0),
                     STATS_PLAYER_GAIA_VP_FAUNA_TABLEAU,
                     $playerId
                 );
@@ -437,13 +457,14 @@ trait GameStatesTrait
                     );
                 }
                 $hasFaunaBonus = $leafTokenMgr->playerHasFaunaBoardTableauBonus($pad->playerId);
+                $faunaBonusScore = \EA\Score\ScoreFaunaBonus::getFaunaBonusScore();
                 $this->setStat(
-                    $pad->scoreFauna - ($hasFaunaBonus ? 7 : 0),
+                    $pad->scoreFauna - ($hasFaunaBonus ? $faunaBonusScore : 0),
                     STATS_PLAYER_VP_FAUNA_CARD,
                     $pad->playerId
                 );
                 $this->setStat(
-                    ($hasFaunaBonus ? 7 : 0),
+                    ($hasFaunaBonus ? $faunaBonusScore : 0),
                     STATS_PLAYER_VP_FAUNA_TABLEAU,
                     $pad->playerId
                 );
@@ -510,6 +531,41 @@ trait GameStatesTrait
                     STATS_PLAYER_NB_GROWTH_PAID_TOTAL,
                     $pad->playerId
                 );
+                // Abundance
+                if (gameHasExpansionAbundance()) {
+                    $this->setStat(
+                        $ps->statNbSeedGained ?? 0,
+                        STATS_PLAYER_NB_GAINED_SEEDS_TOTAL,
+                        $pad->playerId
+                    );
+                    $this->setStat(
+                        $ps->statNbLeafsConverted ?? 0,
+                        STATS_PLAYER_NB_LEAFS_CONVERTED_TOTAL,
+                        $pad->playerId
+                    );
+                    $this->setStat(
+                        $ps->statNbGerminate ?? 0,
+                        STATS_PLAYER_NB_GERMINATE_TOTAL,
+                        $pad->playerId
+                    );
+                    // Stats for sprout exchange
+                    $pe = $playerExchangeMgr->getBySameFromToPlayerId($pad->playerId);
+                    $this->setStat(
+                        $pe->sproutGive,
+                        STATS_PLAYER_NB_SPROUTS_PLACED_ON_BOARD_BY_PLAYER,
+                        $pad->playerId
+                    );
+                    $this->setStat(
+                        $pe->sproutTake,
+                        STATS_PLAYER_NB_SPROUTS_PLACED_FROM_BOARD,
+                        $pad->playerId
+                    );
+                    $this->setStat(
+                        array_sum(array_map(fn ($pe) => $pe->sproutGive, $playerExchangeMgr->getByToPlayerIdExceptSame($pad->playerId))),
+                        STATS_PLAYER_NB_SPROUTS_PLACED_ON_BOARD_BY_OTHERS,
+                        $pad->playerId
+                    );
+                }
             }
         }
     }

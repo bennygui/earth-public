@@ -189,7 +189,7 @@ trait GameActionsTrait
                 }
                 $ret['_private'][$playerId]['privateStateId'] = $privateState->stateId;
             }
-            $ret['_private'][$playerId]['undoLevel'] = \BX\Action\ActionCommandMgr::count($playerId);
+            $ret['_private'][$playerId]['undoLevel'] = \BX\Action\ActionCommandMgr::undoLevel($playerId);
         }
         return $ret;
     }

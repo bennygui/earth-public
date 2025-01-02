@@ -22,6 +22,7 @@ const GAME_PHASE_CHOOSE_MAIN_ACTION = 1;
 const GAME_PHASE_EXECUTE_MAIN_ACTION = 2;
 const GAME_PHASE_CARD_ACTIVATION = 3;
 const GAME_PHASE_END_GAME = 4;
+const GAME_PHASE_END_TURN = 5;
 
 class GameState extends \BX\Action\BaseActionRow
 {
@@ -53,6 +54,8 @@ class GameState extends \BX\Action\BaseActionRow
     public $gaiaDeckShuffle;
     /** @dbcol */
     public $lastGaiaFaunaLeft;
+    /** @dbcol @dboptional */
+    public $gameVersion;
 
     public function __construct()
     {
@@ -70,6 +73,7 @@ class GameState extends \BX\Action\BaseActionRow
         $this->soloPlayerGainedCard = 0;
         $this->gaiaDeckShuffle = 0;
         $this->lastGaiaFaunaLeft = true;
+        $this->gameVersion = null;
     }
 }
 
@@ -105,9 +109,13 @@ class GameStateMgr extends \BX\Action\BaseActionRowMgr
     public function setup(array $playerIdArray)
     {
         $gs = $this->db->newRow();
+        $gs->gameVersion = 1;
         if (isGameSolo()) {
             $playerMgr = \BX\Action\ActionRowMgrRegister::getMgr('player');
             $gs->gaiaColorName = $playerMgr->getFirstUnusedColorName();
+            if (gameHasExpansionAbundance()) {
+                $gs->gaiaSprout = 10;
+            }
         }
         $this->db->insertRow($gs);
     }
@@ -199,13 +207,26 @@ class GameStateMgr extends \BX\Action\BaseActionRowMgr
                 $gamePhase = GAME_PHASE_EXECUTE_MAIN_ACTION;
                 break;
             case GAME_PHASE_EXECUTE_MAIN_ACTION:
-                if (!isGameSolo() || $this->getActiveMainActionId() != MAIN_ACTION_ID_SOLO_FAUNA) {
-                    $gamePhase = GAME_PHASE_CARD_ACTIVATION;
+                if (gameVersionHasFalltroughActivation()) {
+                    // Falltrough if not planting
+                    if ($this->getActiveMainActionId() == MAIN_ACTION_ID_PLANT) {
+                        $gamePhase = GAME_PHASE_CARD_ACTIVATION;
+                        break;
+                    }
+                } else {
+                    if (!isGameSolo() || $this->getActiveMainActionId() != MAIN_ACTION_ID_SOLO_FAUNA) {
+                        $gamePhase = GAME_PHASE_CARD_ACTIVATION;
+                        break;
+                    }
+                    // Falltrough if when the action is Solo Fauna
+                }
+            case GAME_PHASE_CARD_ACTIVATION:
+                if (gameHasExpansionAbundance()) {
+                    $gamePhase = GAME_PHASE_END_TURN;
                     break;
                 }
-                // Falltrough if when the action is Solo Fauna
             case GAME_PHASE_PLAYER_SETUP:
-            case GAME_PHASE_CARD_ACTIVATION:
+            case GAME_PHASE_END_TURN:
                 $gamePhase = GAME_PHASE_CHOOSE_MAIN_ACTION;
                 $clearMainAction = true;
                 $this->activateNextPlayerId();
@@ -218,6 +239,16 @@ class GameStateMgr extends \BX\Action\BaseActionRowMgr
             $playerMgr = \BX\Action\ActionRowMgrRegister::getMgr('player');
             $playerIdArray = $playerMgr->getAllPlayerIds();
             if (isGameSolo() || $playerIdArray[0] == $this->activePlayerId()) {
+                $gamePhase = GAME_PHASE_END_GAME;
+            }
+        }
+        if ($gamePhase == GAME_PHASE_CHOOSE_MAIN_ACTION && isGameSolo()) {
+            $cardMgr = \BX\Action\ActionRowMgrRegister::getMgr('card');
+            if (
+                $this->isGaiaTurn()
+                && $this->getGaiaDeckShuffle() >= 1
+                && $cardMgr->getTopCardFromGaiaDeck() === null
+            ) {
                 $gamePhase = GAME_PHASE_END_GAME;
             }
         }
@@ -442,5 +473,15 @@ class GameStateMgr extends \BX\Action\BaseActionRowMgr
         $gs->activePlayerId = $playerIdArray[0];
         $gs->isLastRound = false;
         $this->db->updateRow($gs);
+    }
+
+    public function getGameVersion()
+    {
+        $gs = $this->getRowByKey(GAME_STATE_ID);
+        $version = $gs->gameVersion;
+        if ($version === null || $version < 0) {
+            $version = 0;
+        }
+        return $version;
     }
 }

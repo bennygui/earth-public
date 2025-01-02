@@ -64,7 +64,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreatorCommit($playerId);
         $creator->add(new \EA\Actions\Ability\GainDrawCardFromDeck($playerId, INACTIVE_PLAYER_GAIN_CARD));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->commit();
     }
@@ -96,7 +96,7 @@ trait GameStatesTrait
 
         $creator = new \BX\Action\ActionCommandCreator($playerId);
         $creator->add(new \EA\Actions\Ability\PlaceGrowth($playerId, $placedGrowthList));
-        $this->addNextConfirmEndPhaseOrExit($playerId, $creator);
+        $this->addMainActionMoveToActivation($playerId, $creator);
         $this->addCommonActions($creator);
         $creator->save();
     }
